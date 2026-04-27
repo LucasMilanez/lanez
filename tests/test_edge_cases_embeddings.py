@@ -6,6 +6,7 @@ Caso de Borda 3: Texto sem parágrafos (R5.4)
 Caso de Borda 4: Busca semântica sem embeddings (R7)
 Caso de Borda 5: Busca semântica com serviço inexistente (R7.4)
 Caso de Borda 8: content_hash igual (skip) — ingest_item retorna False na segunda chamada (R6.4)
+Caso de Borda A2: Limpeza de órfãos em ingest_graph_data (R3)
 """
 
 from __future__ import annotations
@@ -18,7 +19,9 @@ import pytest
 
 import hashlib
 
-from app.services.embeddings import chunk_text, ingest_item, semantic_search
+from sqlalchemy.dialects import postgresql
+
+from app.services.embeddings import chunk_text, ingest_graph_data, ingest_item, semantic_search
 
 
 # ---------------------------------------------------------------------------
@@ -269,7 +272,8 @@ async def test_ingest_item_same_text_returns_false_on_second_call():
 
     assert result_first is True
     db_first.add.assert_called_once()
-    db_first.commit.assert_awaited_once()
+    # After M1, ingest_item no longer commits — commit is handled by get_db
+    db_first.commit.assert_not_awaited()
 
     # --- Segunda chamada: embedding existe com mesmo content_hash → SKIP ---
     db_second = AsyncMock()
@@ -285,3 +289,58 @@ async def test_ingest_item_same_text_returns_false_on_second_call():
     assert result_second is False
     db_second.add.assert_not_called()
     db_second.commit.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
+# Caso de Borda A2: Limpeza de órfãos em ingest_graph_data (R3)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_ingest_graph_data_cleans_orphan_chunks_on_resize():
+    """ingest_graph_data deve emitir DELETE de órfãos antes de re-ingerir.
+
+    Validates: Requirements R3 (Issue A2)
+
+    Quando um recurso é re-ingerido, o primeiro db.execute deve ser um DELETE
+    que cobre tanto resource_id exato quanto variantes __chunk_N.
+    """
+    user_id = uuid.uuid4()
+    service = "mail"
+    resource_id = "abc"
+    fake_vector = [0.1] * 384
+
+    db = AsyncMock()
+    # ingest_item faz db.execute (SELECT) → precisa retornar mock com scalar_one_or_none
+    select_result = MagicMock()
+    select_result.scalar_one_or_none.return_value = None
+    db.execute.return_value = select_result
+
+    with (
+        patch("app.services.embeddings.extract_text", return_value="Texto curto para um chunk"),
+        patch("app.services.embeddings.generate_embedding", return_value=fake_vector),
+    ):
+        await ingest_graph_data(db, user_id, service, resource_id, {"subject": "test"})
+
+    # O primeiro db.execute deve ser o DELETE de órfãos
+    assert db.execute.call_count >= 1, "db.execute deve ter sido chamado ao menos uma vez"
+
+    first_call_args = db.execute.call_args_list[0]
+    delete_stmt = first_call_args[0][0]  # primeiro argumento posicional
+
+    # Compilar o statement para SQL com literal_binds para inspecionar valores
+    compiled = delete_stmt.compile(
+        dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
+    )
+    sql_literal = str(compiled)
+
+    assert "resource_id = 'abc'" in sql_literal, (
+        f"DELETE deve conter resource_id = 'abc'. SQL: {sql_literal}"
+    )
+    # psycopg2 dialect escapa % como %% em literal_binds
+    assert (
+        "resource_id LIKE 'abc__chunk_%'" in sql_literal
+        or "resource_id LIKE 'abc__chunk_%%'" in sql_literal
+    ), (
+        f"DELETE deve conter resource_id LIKE 'abc__chunk_%'. SQL: {sql_literal}"
+    )

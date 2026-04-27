@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from sentence_transformers import SentenceTransformer
-from sqlalchemy import select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.embedding import Embedding
@@ -175,7 +175,6 @@ async def ingest_item(
             )
         )
 
-    await db.commit()
     return True
 
 
@@ -195,6 +194,18 @@ async def ingest_graph_data(
     text = extract_text(service, data)
     if not text:
         return
+
+    # Remover entradas antigas do mesmo resource_id (cobrindo 1↔N chunks)
+    await db.execute(
+        delete(Embedding).where(
+            Embedding.user_id == user_id,
+            Embedding.service == service,
+            or_(
+                Embedding.resource_id == resource_id,
+                Embedding.resource_id.like(f"{resource_id}__chunk_%"),
+            ),
+        )
+    )
 
     chunks = chunk_text(text)
     if len(chunks) == 1:
