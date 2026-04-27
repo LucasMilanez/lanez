@@ -444,8 +444,8 @@ async def test_semantic_search_limit_capped_at_20():
 
 
 @pytest.mark.asyncio
-async def test_mcp_list_tools_returns_6_including_semantic_search():
-    """GET /mcp retorna exatamente 6 ferramentas, incluindo semantic_search."""
+async def test_mcp_list_tools_returns_8_including_semantic_search():
+    """GET /mcp retorna exatamente 8 ferramentas, incluindo semantic_search, save_memory e recall_memory."""
     from httpx import ASGITransport, AsyncClient
 
     from app.dependencies import get_current_user
@@ -464,14 +464,14 @@ async def test_mcp_list_tools_returns_6_including_semantic_search():
         body = resp.json()
 
         tools = body["result"]["tools"]
-        assert len(tools) == 6, f"Expected 6 tools, got {len(tools)}"
+        assert len(tools) == 8, f"Expected 8 tools, got {len(tools)}"
 
         tool_names = {t["name"] for t in tools}
         assert "semantic_search" in tool_names, (
             f"semantic_search not found in tools: {tool_names}"
         )
 
-        # Verificar que todas as 6 ferramentas esperadas estão presentes
+        # Verificar que todas as 8 ferramentas esperadas estão presentes
         expected = {
             "get_calendar_events",
             "search_emails",
@@ -479,6 +479,8 @@ async def test_mcp_list_tools_returns_6_including_semantic_search():
             "search_files",
             "web_search",
             "semantic_search",
+            "save_memory",
+            "recall_memory",
         }
         assert tool_names == expected, f"Expected {expected}, got {tool_names}"
     finally:

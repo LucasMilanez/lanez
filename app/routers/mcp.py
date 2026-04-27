@@ -150,6 +150,64 @@ TOOL_SEMANTIC_SEARCH = MCPTool(
     },
 )
 
+TOOL_SAVE_MEMORY = MCPTool(
+    name="save_memory",
+    description=(
+        "Salva uma memória persistente que será lembrada em sessões futuras. "
+        "Use para registrar decisões, preferências, projetos em andamento e fatos "
+        "importantes do usuário. Cada chamada cria uma nova memória (nunca sobrescreve). "
+        "Exemplos: 'o usuário prefere respostas em português', "
+        "'projeto Alpha tem deadline em março', "
+        "'João é o contato principal para contratos'"
+    ),
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "content": {
+                "type": "string",
+                "description": "Texto da memória a ser salva — decisão, preferência ou fato importante",
+            },
+            "tags": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Tags opcionais para categorizar e filtrar memórias (ex: ['preferencia', 'projeto-alpha'])",
+            },
+        },
+        "required": ["content"],
+    },
+)
+
+TOOL_RECALL_MEMORY = MCPTool(
+    name="recall_memory",
+    description=(
+        "Recupera memórias relevantes para a conversa atual via busca semântica. "
+        "Use no início de sessões para carregar contexto, ou quando o usuário "
+        "mencionar algo que pode ter sido salvo anteriormente. "
+        "Exemplos: 'quais são as preferências do usuário?', "
+        "'o que sabemos sobre o projeto Alpha?', "
+        "'buscar decisões sobre contratos'"
+    ),
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "Descrição do que você está buscando nas memórias",
+            },
+            "tags": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Filtrar por tags específicas — retorna memórias com PELO MENOS uma tag da lista (filtro OR)",
+            },
+            "limit": {
+                "type": "integer",
+                "description": "Número máximo de resultados (padrão: 5, máximo: 20)",
+            },
+        },
+        "required": ["query"],
+    },
+)
+
 
 # ---------------------------------------------------------------------------
 # Handlers das ferramentas MCP
@@ -266,6 +324,42 @@ async def handle_semantic_search(
     return await _semantic_search(db, user.id, query, limit, services)
 
 
+async def handle_save_memory(
+    arguments: dict,
+    user: User,
+    db: AsyncSession,
+    redis: aioredis.Redis,
+    graph: GraphService,
+    searxng: SearXNGService,
+) -> dict:
+    """Salva uma memória persistente para sessões futuras."""
+    from app.services.memory import save_memory
+
+    content = arguments["content"]
+    tags = arguments.get("tags")
+    try:
+        return await save_memory(db, user.id, content, tags)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+async def handle_recall_memory(
+    arguments: dict,
+    user: User,
+    db: AsyncSession,
+    redis: aioredis.Redis,
+    graph: GraphService,
+    searxng: SearXNGService,
+) -> list[dict]:
+    """Recupera memórias relevantes via busca semântica."""
+    from app.services.memory import recall_memory
+
+    query = arguments["query"]
+    tags = arguments.get("tags")
+    limit = min(int(arguments.get("limit", 5)), 20)
+    return await recall_memory(db, user.id, query, tags, limit)
+
+
 # ---------------------------------------------------------------------------
 # Registros de ferramentas
 # ---------------------------------------------------------------------------
@@ -277,6 +371,8 @@ TOOLS_REGISTRY: dict[str, Any] = {
     "search_files": handle_search_files,
     "web_search": handle_web_search,
     "semantic_search": handle_semantic_search,
+    "save_memory": handle_save_memory,
+    "recall_memory": handle_recall_memory,
 }
 
 TOOLS_MAP: dict[str, MCPTool] = {
@@ -286,6 +382,8 @@ TOOLS_MAP: dict[str, MCPTool] = {
     "search_files": TOOL_SEARCH_FILES,
     "web_search": TOOL_WEB_SEARCH,
     "semantic_search": TOOL_SEMANTIC_SEARCH,
+    "save_memory": TOOL_SAVE_MEMORY,
+    "recall_memory": TOOL_RECALL_MEMORY,
 }
 
 ALL_TOOLS: list[MCPTool] = [
@@ -295,6 +393,8 @@ ALL_TOOLS: list[MCPTool] = [
     TOOL_SEARCH_FILES,
     TOOL_WEB_SEARCH,
     TOOL_SEMANTIC_SEARCH,
+    TOOL_SAVE_MEMORY,
+    TOOL_RECALL_MEMORY,
 ]
 
 
