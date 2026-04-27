@@ -1,21 +1,24 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from typing import Any
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db, get_redis
+from app.database import AsyncSessionLocal, get_db, get_redis
 from app.models.webhook import WebhookSubscription
 from app.dependencies import get_current_user as _get_current_user
-from app.schemas.graph import WebhookNotification, WebhookSubscriptionResponse
+from app.schemas.graph import ServiceType, WebhookNotification, WebhookSubscriptionResponse
 from app.services.cache import CacheService
+from app.services.embeddings import ingest_graph_data
+from app.services.graph import GraphService
 from app.services.webhook import WebhookService
 
 logger = logging.getLogger(__name__)
@@ -33,9 +36,37 @@ def get_cache_service(redis: aioredis.Redis = Depends(get_redis)) -> CacheServic
     return CacheService(redis)
 
 
+async def _reingest_background(user_id: uuid.UUID, service_type: ServiceType) -> None:
+    """Background task: busca dados frescos via GraphService e regenera embeddings.
+
+    Cria sessão própria (não compartilha a do request), loga erros sem propagar.
+    """
+    graph_svc = GraphService()
+    try:
+        async with AsyncSessionLocal() as db:
+            redis = get_redis()
+            response = await graph_svc.fetch_data(user_id, service_type, db, redis)
+            data = response.data
+            items = data.get("value", []) if isinstance(data, dict) else []
+
+            for item in items:
+                resource_id = item.get("id", "")
+                if resource_id:
+                    await ingest_graph_data(db, user_id, service_type.value, resource_id, item)
+    except Exception:
+        logger.exception(
+            "Erro no re-embedding user_id=%s service=%s [token=REDACTED]",
+            user_id,
+            service_type.value,
+        )
+    finally:
+        await graph_svc.close()
+
+
 @router.post("/graph")
 async def receive_graph_notification(
     request: Request,
+    background_tasks: BackgroundTasks,
     validation_token: str | None = Query(None, alias="validationToken"),
     webhook_service: WebhookService = Depends(get_webhook_service),
     cache_service: CacheService = Depends(get_cache_service),
@@ -53,7 +84,10 @@ async def receive_graph_notification(
             change_type=item.get("changeType", ""),
         )
         try:
-            await webhook_service.process_notification(notification, cache_service, db)
+            result = await webhook_service.process_notification(notification, cache_service, db)
+            if result is not None:
+                user_id, service_type = result
+                background_tasks.add_task(_reingest_background, user_id, service_type)
         except HTTPException:
             raise
         except Exception:

@@ -120,6 +120,36 @@ TOOL_WEB_SEARCH = MCPTool(
     },
 )
 
+TOOL_SEMANTIC_SEARCH = MCPTool(
+    name="semantic_search",
+    description=(
+        "Busca por significado em todos os serviços do Microsoft 365 simultaneamente. "
+        "Use quando o usuário quiser encontrar algo sem saber em qual serviço está, "
+        "ou quando uma busca por palavra-chave não for suficiente. "
+        "Exemplos: 'encontre informações sobre o projeto Alpha', "
+        "'o que discutimos com João sobre contratos?'"
+    ),
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "description": "Descrição do que você está buscando"},
+            "services": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "enum": ["calendar", "mail", "onenote", "onedrive"],
+                },
+                "description": "Filtrar por serviços específicos (opcional — padrão: todos)",
+            },
+            "limit": {
+                "type": "integer",
+                "description": "Número máximo de resultados (padrão: 10, máximo: 20)",
+            },
+        },
+        "required": ["query"],
+    },
+)
+
 
 # ---------------------------------------------------------------------------
 # Handlers das ferramentas MCP
@@ -219,6 +249,23 @@ async def handle_web_search(
     return await searxng.search(query)
 
 
+async def handle_semantic_search(
+    arguments: dict,
+    user: User,
+    db: AsyncSession,
+    redis: aioredis.Redis,
+    graph: GraphService,
+    searxng: SearXNGService,
+) -> list[dict]:
+    """Busca semântica em todos os serviços do Microsoft 365."""
+    from app.services.embeddings import semantic_search as _semantic_search
+
+    query = arguments["query"]
+    services = arguments.get("services")
+    limit = min(int(arguments.get("limit", 10)), 20)
+    return await _semantic_search(db, user.id, query, limit, services)
+
+
 # ---------------------------------------------------------------------------
 # Registros de ferramentas
 # ---------------------------------------------------------------------------
@@ -229,6 +276,7 @@ TOOLS_REGISTRY: dict[str, Any] = {
     "get_onenote_pages": handle_get_onenote_pages,
     "search_files": handle_search_files,
     "web_search": handle_web_search,
+    "semantic_search": handle_semantic_search,
 }
 
 TOOLS_MAP: dict[str, MCPTool] = {
@@ -237,6 +285,7 @@ TOOLS_MAP: dict[str, MCPTool] = {
     "get_onenote_pages": TOOL_GET_ONENOTE_PAGES,
     "search_files": TOOL_SEARCH_FILES,
     "web_search": TOOL_WEB_SEARCH,
+    "semantic_search": TOOL_SEMANTIC_SEARCH,
 }
 
 ALL_TOOLS: list[MCPTool] = [
@@ -245,6 +294,7 @@ ALL_TOOLS: list[MCPTool] = [
     TOOL_GET_ONENOTE_PAGES,
     TOOL_SEARCH_FILES,
     TOOL_WEB_SEARCH,
+    TOOL_SEMANTIC_SEARCH,
 ]
 
 

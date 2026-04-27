@@ -70,5 +70,6 @@ async def test_correct_client_state_is_accepted() -> None:
 
     result = await svc.process_notification(notification, cache_service, db)
 
-    assert result is True
+    assert result is not None
+    assert isinstance(result, tuple)
     cache_service.invalidate.assert_called_once()
