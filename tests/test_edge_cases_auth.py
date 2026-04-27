@@ -257,8 +257,8 @@ def _make_graph_user(
     """Cria um mock de User com propriedades de token para testes Graph."""
     user = MagicMock()
     user.id = user_id or uuid.uuid4()
-    user.access_token = access_token
-    user.refresh_token = refresh_token
+    user.microsoft_access_token = access_token
+    user.microsoft_refresh_token = refresh_token
     user.token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
     return user
 
@@ -360,7 +360,7 @@ async def test_graph_401_triggers_token_refresh_and_retry():
     assert result.data == expected_data
 
     # 2. Token foi renovado no objeto user
-    assert user.access_token == "new-refreshed-token"
+    assert user.microsoft_access_token == "new-refreshed-token"
 
     # 3. Graph API foi chamada 2 vezes (401 + retry 200)
     assert call_count == 2

@@ -36,8 +36,8 @@ def _make_user(
     """Cria um mock de User com propriedades de token."""
     user = MagicMock()
     user.id = user_id or uuid.uuid4()
-    user.access_token = access_token
-    user.refresh_token = refresh_token
+    user.microsoft_access_token = access_token
+    user.microsoft_refresh_token = refresh_token
     user.token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
     return user
 
@@ -187,7 +187,7 @@ async def test_fetch_data_401_refresh_and_retry():
     assert result.from_cache is False
     assert result.data == graph_data
     # Token should have been refreshed
-    assert user.access_token == "new-access-token"
+    assert user.microsoft_access_token == "new-access-token"
 
 
 @pytest.mark.asyncio

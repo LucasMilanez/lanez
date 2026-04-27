@@ -131,7 +131,7 @@ def test_jsonrpc_response_always_valid(tool_name, request_id, arguments) -> None
         params={"name": tool_name, "arguments": arguments},
     )
 
-    resp = asyncio.get_event_loop().run_until_complete(
+    resp = asyncio.run(
         call_tool(req, user, db, fake_redis, graph, searxng)
     )
 
@@ -163,7 +163,7 @@ def test_tool_descriptions_immutable(iteration) -> None:
     """Descriptions das ferramentas nunca mudam entre chamadas."""
     user = _make_user()
 
-    result = asyncio.get_event_loop().run_until_complete(list_tools(user))
+    result = asyncio.run(list_tools(user))
 
     tools = result["result"]["tools"]
     assert len(tools) == len(ALL_TOOLS), "Número de ferramentas deve ser constante"
@@ -202,7 +202,7 @@ def test_protocol_error_unknown_tool(tool_name, request_id) -> None:
         params={"name": tool_name, "arguments": {}},
     )
 
-    resp = asyncio.get_event_loop().run_until_complete(
+    resp = asyncio.run(
         call_tool(req, user, db, fake_redis, graph, searxng)
     )
 
@@ -233,7 +233,7 @@ def test_protocol_error_missing_params(tool_name, request_id) -> None:
         params={"name": tool_name, "arguments": {}},
     )
 
-    resp = asyncio.get_event_loop().run_until_complete(
+    resp = asyncio.run(
         call_tool(req, user, db, fake_redis, graph, searxng)
     )
 
@@ -266,7 +266,7 @@ def test_domain_error_has_result_not_error(request_id) -> None:
         },
     )
 
-    resp = asyncio.get_event_loop().run_until_complete(
+    resp = asyncio.run(
         call_tool(req, user, db, fake_redis, graph, searxng)
     )
 
@@ -318,7 +318,7 @@ def test_fetch_with_params_never_uses_cache(endpoint, param_key, param_val) -> N
 
                 return result
 
-        result = asyncio.get_event_loop().run_until_complete(_run())
+        result = asyncio.run(_run())
         assert result == graph_data
 
 
@@ -376,7 +376,7 @@ def test_rate_limit_shared_key(user_id) -> None:
 
                 return spy_redis_1.incr_keys, spy_redis_2.incr_keys
 
-        keys_1, keys_2 = asyncio.get_event_loop().run_until_complete(_run())
+        keys_1, keys_2 = asyncio.run(_run())
 
         # Ambos devem usar a mesma chave de rate limit
         assert expected_key in keys_1, (
