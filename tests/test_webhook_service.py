@@ -266,7 +266,7 @@ async def test_process_notification_invalid_client_state():
 
 @pytest.mark.asyncio
 async def test_process_notification_subscription_not_found():
-    """Retorna False quando subscription_id não existe no banco."""
+    """Retorna None quando subscription_id não existe no banco."""
     notification = WebhookNotification(
         subscription_id="nonexistent-sub",
         client_state="test-webhook-state",
@@ -285,13 +285,13 @@ async def test_process_notification_subscription_not_found():
 
     result = await svc.process_notification(notification, cache_service, db)
 
-    assert result is False
+    assert result is None
     cache_service.invalidate.assert_not_called()
 
 
 @pytest.mark.asyncio
 async def test_process_notification_unknown_resource():
-    """Retorna False quando o resource da subscrição não mapeia para nenhum ServiceType."""
+    """Retorna None quando o resource da subscrição não mapeia para nenhum ServiceType."""
     user_id = uuid.uuid4()
     notification = WebhookNotification(
         subscription_id="sub-1",
@@ -315,7 +315,7 @@ async def test_process_notification_unknown_resource():
 
     result = await svc.process_notification(notification, cache_service, db)
 
-    assert result is False
+    assert result is None
     cache_service.invalidate.assert_not_called()
 
 
@@ -344,7 +344,7 @@ async def test_process_notification_success_calendar():
 
     result = await svc.process_notification(notification, cache_service, db)
 
-    assert result is True
+    assert result == (user_id, ServiceType.CALENDAR)
     cache_service.invalidate.assert_called_once_with(str(user_id), ServiceType.CALENDAR)
 
 
@@ -373,7 +373,7 @@ async def test_process_notification_success_mail():
 
     result = await svc.process_notification(notification, cache_service, db)
 
-    assert result is True
+    assert result == (user_id, ServiceType.MAIL)
     cache_service.invalidate.assert_called_once_with(str(user_id), ServiceType.MAIL)
 
 
@@ -402,7 +402,7 @@ async def test_process_notification_success_onedrive():
 
     result = await svc.process_notification(notification, cache_service, db)
 
-    assert result is True
+    assert result == (user_id, ServiceType.ONEDRIVE)
     cache_service.invalidate.assert_called_once_with(str(user_id), ServiceType.ONEDRIVE)
 
 

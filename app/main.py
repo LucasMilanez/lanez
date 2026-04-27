@@ -16,6 +16,7 @@ from app.config import settings
 from app.database import AsyncSessionLocal, close_redis, engine, init_redis
 from app.models import Base  # importa Base + todos os modelos (side-effect)
 from app.routers import auth, graph, mcp, webhooks
+from app.services.embeddings import get_model
 from app.services.webhook import WebhookService
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,9 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Tabelas do banco criadas/verificadas")
+
+    get_model()
+    logger.info("Modelo de embeddings carregado")
 
     renewal_task = asyncio.create_task(renewal_loop())
     logger.info("Loop de renovação de webhooks iniciado")

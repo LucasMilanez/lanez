@@ -371,3 +371,115 @@ async def test_jwt_missing_returns_401():
         # GET /mcp/sse sem Authorization
         resp = await client.get("/mcp/sse")
         assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Caso de Borda 9: Parâmetro query ausente em semantic_search
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_semantic_search_missing_query_returns_32602():
+    """semantic_search sem query → JSON-RPC error -32602."""
+    user = _make_user()
+    db = AsyncMock()
+    redis = FakeRedis()
+    graph = AsyncMock()
+    searxng = AsyncMock()
+
+    req = MCPCallRequest(
+        jsonrpc="2.0",
+        id="req-9",
+        method="tools/call",
+        params={"name": "semantic_search", "arguments": {}},
+    )
+
+    resp = await call_tool(req, user, db, redis, graph, searxng)
+
+    assert "error" in resp
+    assert "result" not in resp
+    assert resp["error"]["code"] == -32602
+    assert "query" in resp["error"]["message"]
+
+
+# ---------------------------------------------------------------------------
+# Caso de Borda 10: limit excedendo máximo (capping em 20)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_semantic_search_limit_capped_at_20():
+    """handle_semantic_search com limit=100 → semantic_search recebe limit=20."""
+    from unittest.mock import patch
+
+    from app.routers.mcp import handle_semantic_search
+
+    user = _make_user()
+    db = AsyncMock()
+    redis = FakeRedis()
+    graph = AsyncMock()
+    searxng = AsyncMock()
+
+    with patch("app.services.embeddings.semantic_search", new_callable=AsyncMock) as mock_search:
+        mock_search.return_value = []
+
+        await handle_semantic_search(
+            arguments={"query": "test", "limit": 100},
+            user=user,
+            db=db,
+            redis=redis,
+            graph=graph,
+            searxng=searxng,
+        )
+
+        mock_search.assert_called_once()
+        call_args = mock_search.call_args
+        # limit is the 4th positional arg: (db, user.id, query, limit, services)
+        assert call_args[0][3] == 20, f"Expected limit=20, got {call_args[0][3]}"
+
+
+# ---------------------------------------------------------------------------
+# Propriedade 7: Lista de ferramentas MCP com 6 itens incluindo semantic_search
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_mcp_list_tools_returns_6_including_semantic_search():
+    """GET /mcp retorna exatamente 6 ferramentas, incluindo semantic_search."""
+    from httpx import ASGITransport, AsyncClient
+
+    from app.dependencies import get_current_user
+    from app.main import app
+
+    user = _make_user()
+
+    # Override JWT dependency para evitar autenticação real
+    app.dependency_overrides[get_current_user] = lambda: user
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/mcp")
+
+        assert resp.status_code == 200
+        body = resp.json()
+
+        tools = body["result"]["tools"]
+        assert len(tools) == 6, f"Expected 6 tools, got {len(tools)}"
+
+        tool_names = {t["name"] for t in tools}
+        assert "semantic_search" in tool_names, (
+            f"semantic_search not found in tools: {tool_names}"
+        )
+
+        # Verificar que todas as 6 ferramentas esperadas estão presentes
+        expected = {
+            "get_calendar_events",
+            "search_emails",
+            "get_onenote_pages",
+            "search_files",
+            "web_search",
+            "semantic_search",
+        }
+        assert tool_names == expected, f"Expected {expected}, got {tool_names}"
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)

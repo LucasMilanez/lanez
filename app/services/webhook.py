@@ -348,7 +348,7 @@ class WebhookService:
         notification: WebhookNotification,
         cache_service: CacheService,
         db: AsyncSession,
-    ) -> bool:
+    ) -> tuple[uuid.UUID, ServiceType] | None:
         """Processa uma notificação de webhook da Microsoft Graph.
 
         Fluxo:
@@ -363,7 +363,9 @@ class WebhookService:
             db: Sessão assíncrona do SQLAlchemy.
 
         Returns:
-            ``True`` se a notificação foi processada com sucesso.
+            Tupla ``(user_id, service_type)`` se a notificação foi processada
+            com sucesso, ou ``None`` se a subscrição não foi encontrada ou o
+            resource não pôde ser mapeado.
 
         Raises:
             HTTPException: 403 se ``clientState`` não corresponder ao esperado.
@@ -388,7 +390,7 @@ class WebhookService:
                 "Subscrição não encontrada: subscription_id=%s",
                 notification.subscription_id,
             )
-            return False
+            return None
 
         # 3. Mapear resource para ServiceType
         user_id = subscription.user_id
@@ -402,7 +404,7 @@ class WebhookService:
                 notification.subscription_id,
                 user_id,
             )
-            return False
+            return None
 
         # 4. Invalidar cache
         await cache_service.invalidate(str(user_id), service_type)
@@ -413,4 +415,4 @@ class WebhookService:
             notification.subscription_id,
         )
 
-        return True
+        return user_id, service_type
