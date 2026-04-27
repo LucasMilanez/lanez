@@ -38,9 +38,18 @@ class Base(DeclarativeBase):
 # ---------------------------------------------------------------------------
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """FastAPI dependency que fornece uma sessão assíncrona do banco."""
+    """FastAPI dependency que fornece uma sessão assíncrona do banco.
+
+    Commit é feito automaticamente ao final do request se nenhuma
+    exceção foi levantada. Rollback automático em caso de exceção.
+    """
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 # ---------------------------------------------------------------------------

@@ -23,7 +23,7 @@ def upgrade() -> None:
     # --- users ---
     op.create_table(
         "users",
-        sa.Column("id", sa.Uuid(), nullable=False, default=sa.text("gen_random_uuid()")),
+        sa.Column("id", sa.Uuid(), nullable=False, server_default=sa.text("gen_random_uuid()")),
         sa.Column("email", sa.String(length=255), nullable=False),
         sa.Column("microsoft_access_token", sa.Text(), nullable=False),
         sa.Column("microsoft_refresh_token", sa.Text(), nullable=False),
@@ -38,7 +38,7 @@ def upgrade() -> None:
     # --- graph_cache ---
     op.create_table(
         "graph_cache",
-        sa.Column("id", sa.Uuid(), nullable=False, default=sa.text("gen_random_uuid()")),
+        sa.Column("id", sa.Uuid(), nullable=False, server_default=sa.text("gen_random_uuid()")),
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("service", sa.String(length=20), nullable=False),
         sa.Column("resource_id", sa.String(length=255), nullable=False),
@@ -60,7 +60,7 @@ def upgrade() -> None:
     # --- webhook_subscriptions ---
     op.create_table(
         "webhook_subscriptions",
-        sa.Column("id", sa.Uuid(), nullable=False, default=sa.text("gen_random_uuid()")),
+        sa.Column("id", sa.Uuid(), nullable=False, server_default=sa.text("gen_random_uuid()")),
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("subscription_id", sa.String(length=255), nullable=False),
         sa.Column("resource", sa.String(length=255), nullable=False),

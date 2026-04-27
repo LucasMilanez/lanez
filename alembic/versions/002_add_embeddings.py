@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from pgvector.sqlalchemy import Vector
 
 
 # revision identifiers, used by Alembic.
@@ -25,12 +26,12 @@ def upgrade() -> None:
     # --- embeddings ---
     op.create_table(
         "embeddings",
-        sa.Column("id", sa.Uuid(), nullable=False, default=sa.text("gen_random_uuid()")),
+        sa.Column("id", sa.Uuid(), nullable=False, server_default=sa.text("gen_random_uuid()")),
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("service", sa.String(length=20), nullable=False),
         sa.Column("resource_id", sa.String(length=255), nullable=False),
         sa.Column("content_hash", sa.String(length=64), nullable=False),
-        sa.Column("vector", sa.Text(), nullable=False),
+        sa.Column("vector", Vector(384), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
