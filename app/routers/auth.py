@@ -1,9 +1,12 @@
 """Router de autenticação OAuth 2.0 com Microsoft Entra ID.
 
 Implementa o fluxo Authorization Code com PKCE (S256) conforme RFC 7636.
+Suporta modo dual no callback: com return_url → cookie + redirect (painel);
+sem return_url → JSON TokenResponse (MCP/curl).
 """
 
 import hashlib
+import json
 import logging
 import os
 import secrets
@@ -13,7 +16,7 @@ from urllib.parse import urlencode
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from jose import jwt
 from redis.asyncio import Redis
 from sqlalchemy import select
@@ -22,12 +25,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import AsyncSessionLocal, get_db, get_redis
 from app.models.user import User, encrypt_token
-from app.schemas.auth import TokenResponse
+from app.schemas.auth import TokenResponse, UserMeResponse
 from app.services.webhook import WebhookService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+_COOKIE_NAME = "lanez_session"
 
 # Escopos exigidos pela Fase 1
 SCOPES = [
@@ -56,6 +61,12 @@ _JWT_EXPIRE_DAYS = 7
 _HTTP_TIMEOUT = 30.0
 
 
+def _is_allowed_return_url(url: str) -> bool:
+    """Valida que return_url começa com uma origem listada em CORS_ORIGINS."""
+    allowed = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
+    return any(url.startswith(origin) for origin in allowed)
+
+
 def _generate_code_verifier() -> str:
     """Gera code_verifier de 32 bytes aleatórios em base64url sem padding."""
     return urlsafe_b64encode(os.urandom(32)).rstrip(b"=").decode("ascii")
@@ -68,15 +79,28 @@ def _generate_code_challenge(code_verifier: str) -> str:
 
 
 @router.get("/microsoft")
-async def auth_microsoft(redis: Redis = Depends(get_redis)):
-    """Inicia o fluxo OAuth 2.0 com PKCE redirecionando para o Entra ID."""
+async def auth_microsoft(
+    redis: Redis = Depends(get_redis),
+    return_url: str | None = Query(default=None),
+):
+    """Inicia o fluxo OAuth 2.0 com PKCE redirecionando para o Entra ID.
+
+    Se return_url fornecido, valida contra allowlist CORS_ORIGINS e armazena
+    no Redis junto com code_verifier para uso no callback.
+    """
+    if return_url and not _is_allowed_return_url(return_url):
+        raise HTTPException(status_code=400, detail="return_url não permitido")
 
     code_verifier = _generate_code_verifier()
     code_challenge = _generate_code_challenge(code_verifier)
     state = secrets.token_hex(16)
 
-    # Armazenar code_verifier e state no Redis com TTL de 10 minutos
-    await redis.set(f"oauth:state:{state}", code_verifier, ex=600)
+    # Armazenar code_verifier + return_url no Redis como JSON com TTL de 10 minutos
+    state_data = json.dumps({
+        "code_verifier": code_verifier,
+        "return_url": return_url,
+    })
+    await redis.set(f"oauth:state:{state}", state_data, ex=600)
 
     params = {
         "client_id": settings.MICROSOFT_CLIENT_ID,
@@ -135,15 +159,9 @@ async def auth_callback(
 ):
     """Callback OAuth 2.0 — troca código por tokens e emite JWT interno.
 
-    Fluxo:
-    1. Verificar se Entra ID retornou erro
-    2. Validar state contra Redis
-    3. Trocar code por tokens via POST token endpoint com code_verifier
-    4. Buscar email via GET /me
-    5. Criar/atualizar User com tokens criptografados
-    6. Emitir JWT interno
-    7. Disparar criação de subscrições webhook como background task
-    8. Retornar TokenResponse
+    Modo dual:
+    - Com return_url no state → RedirectResponse 302 + Set-Cookie lanez_session
+    - Sem return_url → TokenResponse JSON (legado, compatível com MCP/curl)
     """
 
     # 1. Verificar erro do Entra ID
@@ -157,12 +175,21 @@ async def auth_callback(
         raise HTTPException(status_code=400, detail="Parâmetro state ausente")
 
     redis_key = f"oauth:state:{state}"
-    code_verifier = await redis.get(redis_key)
-    if code_verifier is None:
+    raw = await redis.get(redis_key)
+    if raw is None:
         raise HTTPException(status_code=400, detail="State inválido ou expirado")
 
     # Consumir o state (uso único)
     await redis.delete(redis_key)
+
+    # Parsear state data — suporta JSON novo e string pura legada (transição)
+    try:
+        state_data = json.loads(raw)
+        code_verifier = state_data["code_verifier"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        # Fallback: Redis contém string pura (code_verifier) do formato antigo
+        code_verifier = raw if isinstance(raw, str) else raw.decode("utf-8")
+        state_data = {"code_verifier": code_verifier, "return_url": None}
 
     if not code:
         raise HTTPException(status_code=400, detail="Parâmetro code ausente")
@@ -250,7 +277,23 @@ async def auth_callback(
         email,
     )
 
-    # 8. Retornar TokenResponse
+    # 8. Bifurcar resposta: com return_url → cookie + redirect; sem → JSON legado
+    if state_data.get("return_url"):
+        response = RedirectResponse(
+            url=state_data["return_url"], status_code=302
+        )
+        response.set_cookie(
+            key=_COOKIE_NAME,
+            value=internal_jwt,
+            max_age=7 * 24 * 60 * 60,  # 7 dias
+            httponly=True,
+            samesite="lax",
+            secure=False,  # TODO Fase 6c (deploy): secure=True quando atrás de HTTPS
+            path="/",
+        )
+        return response
+
+    # Sem return_url: comportamento legado mantido
     return TokenResponse(
         access_token=internal_jwt,
         token_type="bearer",
@@ -265,6 +308,36 @@ async def auth_callback(
 # ---------------------------------------------------------------------------
 
 from app.dependencies import get_current_user as _get_current_user
+
+
+# ---------------------------------------------------------------------------
+# GET /auth/me + POST /auth/logout — Fase 6a
+# ---------------------------------------------------------------------------
+
+
+@router.get("/me", response_model=UserMeResponse)
+async def auth_me(
+    current_user: User = Depends(_get_current_user),
+) -> UserMeResponse:
+    """Retorna dados básicos do usuário autenticado.
+
+    Usado pelo painel para decidir se mostra /login ou /dashboard.
+    """
+    return UserMeResponse(
+        id=current_user.id,
+        email=current_user.email,
+        token_expires_at=current_user.token_expires_at,
+        last_sync_at=current_user.last_sync_at,
+        created_at=current_user.created_at,
+    )
+
+
+@router.post("/logout", status_code=204)
+async def auth_logout() -> Response:
+    """Limpa o cookie de sessão. Idempotente — sempre retorna 204."""
+    response = Response(status_code=204)
+    response.delete_cookie(key=_COOKIE_NAME, path="/")
+    return response
 
 
 # ---------------------------------------------------------------------------
