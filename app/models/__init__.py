@@ -4,6 +4,7 @@ Exporta a Base declarativa e todos os modelos da aplicação.
 """
 
 from app.database import Base
+from app.models.briefing import Briefing
 from app.models.cache import GraphCache
 from app.models.embedding import Embedding
 from app.models.memory import Memory
@@ -12,6 +13,7 @@ from app.models.webhook import WebhookSubscription
 
 __all__ = [
     "Base",
+    "Briefing",
     "Embedding",
     "GraphCache",
     "Memory",

@@ -19,8 +19,11 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import select
+
 from app.database import get_db, get_redis
 from app.dependencies import get_current_user
+from app.models.briefing import Briefing
 from app.models.user import User
 from app.services.graph import GraphService
 from app.services.searxng import SearXNGService
@@ -208,6 +211,27 @@ TOOL_RECALL_MEMORY = MCPTool(
     },
 )
 
+TOOL_GET_BRIEFING = MCPTool(
+    name="get_briefing",
+    description=(
+        "Recupera o briefing automático gerado para um evento de reunião do calendar. "
+        "O briefing contém resumo estruturado com contexto de emails, OneNote, OneDrive "
+        "e memórias relevantes aos participantes. Use antes de reuniões para preparar o "
+        "usuário. Exemplo: 'recuperar briefing do evento AAMkAGQ3...' passando o ID do "
+        "evento no formato Microsoft Graph."
+    ),
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "event_id": {
+                "type": "string",
+                "description": "ID do evento no Outlook (formato Microsoft Graph)",
+            },
+        },
+        "required": ["event_id"],
+    },
+)
+
 
 # ---------------------------------------------------------------------------
 # Handlers das ferramentas MCP
@@ -360,6 +384,36 @@ async def handle_recall_memory(
     return await recall_memory(db, user.id, query, tags, limit)
 
 
+async def handle_get_briefing(
+    arguments: dict,
+    user: User,
+    db: AsyncSession,
+    redis: aioredis.Redis,
+    graph: GraphService,
+    searxng: SearXNGService,
+) -> dict:
+    """Recupera briefing automático por (user_id, event_id). 404 se não encontrado."""
+    event_id = arguments["event_id"]
+    stmt = select(Briefing).where(
+        Briefing.user_id == user.id,
+        Briefing.event_id == event_id,
+    )
+    result = await db.execute(stmt)
+    briefing = result.scalar_one_or_none()
+    if briefing is None:
+        raise HTTPException(status_code=404, detail="Briefing não encontrado")
+    return {
+        "id": str(briefing.id),
+        "event_id": briefing.event_id,
+        "event_subject": briefing.event_subject,
+        "event_start": briefing.event_start.isoformat(),
+        "event_end": briefing.event_end.isoformat(),
+        "attendees": briefing.attendees,
+        "content": briefing.content,
+        "generated_at": briefing.generated_at.isoformat(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Registros de ferramentas
 # ---------------------------------------------------------------------------
@@ -373,6 +427,7 @@ TOOLS_REGISTRY: dict[str, Any] = {
     "semantic_search": handle_semantic_search,
     "save_memory": handle_save_memory,
     "recall_memory": handle_recall_memory,
+    "get_briefing": handle_get_briefing,
 }
 
 TOOLS_MAP: dict[str, MCPTool] = {
@@ -384,6 +439,7 @@ TOOLS_MAP: dict[str, MCPTool] = {
     "semantic_search": TOOL_SEMANTIC_SEARCH,
     "save_memory": TOOL_SAVE_MEMORY,
     "recall_memory": TOOL_RECALL_MEMORY,
+    "get_briefing": TOOL_GET_BRIEFING,
 }
 
 ALL_TOOLS: list[MCPTool] = [
@@ -395,6 +451,7 @@ ALL_TOOLS: list[MCPTool] = [
     TOOL_SEMANTIC_SEARCH,
     TOOL_SAVE_MEMORY,
     TOOL_RECALL_MEMORY,
+    TOOL_GET_BRIEFING,
 ]
 
 
