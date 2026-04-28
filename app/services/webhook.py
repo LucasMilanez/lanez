@@ -348,7 +348,7 @@ class WebhookService:
         notification: WebhookNotification,
         cache_service: CacheService,
         db: AsyncSession,
-    ) -> tuple[uuid.UUID, ServiceType] | None:
+    ) -> tuple[uuid.UUID, ServiceType, str | None] | None:
         """Processa uma notificação de webhook da Microsoft Graph.
 
         Fluxo:
@@ -356,6 +356,7 @@ class WebhookService:
         2. Busca a subscrição no banco pelo ``subscription_id``
         3. Mapeia o ``resource`` para ``ServiceType`` e extrai ``user_id``
         4. Invalida o cache via ``CacheService.invalidate()``
+        5. Extrai ``event_id`` do resource para notificações CALENDAR
 
         Args:
             notification: Dados da notificação recebida.
@@ -363,9 +364,10 @@ class WebhookService:
             db: Sessão assíncrona do SQLAlchemy.
 
         Returns:
-            Tupla ``(user_id, service_type)`` se a notificação foi processada
-            com sucesso, ou ``None`` se a subscrição não foi encontrada ou o
-            resource não pôde ser mapeado.
+            Tupla ``(user_id, service_type, event_id)`` se a notificação foi
+            processada com sucesso, ou ``None`` se a subscrição não foi
+            encontrada ou o resource não pôde ser mapeado. ``event_id`` é
+            ``str`` para notificações CALENDAR, ``None`` para outros serviços.
 
         Raises:
             HTTPException: 403 se ``clientState`` não corresponder ao esperado.
@@ -415,4 +417,10 @@ class WebhookService:
             notification.subscription_id,
         )
 
-        return user_id, service_type
+        # 5. Extrair event_id para notificações CALENDAR
+        event_id: str | None = None
+        if service_type == ServiceType.CALENDAR:
+            parts = notification.resource.split("/Events/")
+            event_id = parts[1] if len(parts) == 2 else None
+
+        return user_id, service_type, event_id

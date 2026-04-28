@@ -444,8 +444,8 @@ async def test_semantic_search_limit_capped_at_20():
 
 
 @pytest.mark.asyncio
-async def test_mcp_list_tools_returns_8_including_semantic_search():
-    """GET /mcp retorna exatamente 8 ferramentas, incluindo semantic_search, save_memory e recall_memory."""
+async def test_mcp_list_tools_returns_9_including_get_briefing():
+    """GET /mcp retorna exatamente 9 ferramentas, incluindo get_briefing."""
     from httpx import ASGITransport, AsyncClient
 
     from app.dependencies import get_current_user
@@ -464,14 +464,14 @@ async def test_mcp_list_tools_returns_8_including_semantic_search():
         body = resp.json()
 
         tools = body["result"]["tools"]
-        assert len(tools) == 8, f"Expected 8 tools, got {len(tools)}"
+        assert len(tools) == 9, f"Expected 9 tools, got {len(tools)}"
 
         tool_names = {t["name"] for t in tools}
-        assert "semantic_search" in tool_names, (
-            f"semantic_search not found in tools: {tool_names}"
+        assert "get_briefing" in tool_names, (
+            f"get_briefing not found in tools: {tool_names}"
         )
 
-        # Verificar que todas as 8 ferramentas esperadas estão presentes
+        # Verificar que todas as 9 ferramentas esperadas estão presentes
         expected = {
             "get_calendar_events",
             "search_emails",
@@ -481,7 +481,41 @@ async def test_mcp_list_tools_returns_8_including_semantic_search():
             "semantic_search",
             "save_memory",
             "recall_memory",
+            "get_briefing",
         }
         assert tool_names == expected, f"Expected {expected}, got {tool_names}"
     finally:
         app.dependency_overrides.pop(get_current_user, None)
+
+
+# ---------------------------------------------------------------------------
+# Caso de Borda 11: get_briefing retorna 404 quando briefing não existe
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_mcp_get_briefing_404_when_missing():
+    """POST /mcp/call com name='get_briefing' e event_id inexistente → domain error 404."""
+    user = _make_user()
+    db = AsyncMock()
+    redis = FakeRedis()
+    graph = AsyncMock()
+    searxng = AsyncMock()
+
+    # Mock db.execute para retornar resultado sem briefing
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    db.execute = AsyncMock(return_value=mock_result)
+
+    req = MCPCallRequest(
+        jsonrpc="2.0",
+        id="req-11",
+        method="tools/call",
+        params={"name": "get_briefing", "arguments": {"event_id": "inexistente"}},
+    )
+
+    resp = await call_tool(req, user, db, redis, graph, searxng)
+
+    assert "result" in resp
+    assert resp["result"]["isError"] is True
+    assert "404" in resp["result"]["content"][0]["text"] or "não encontrado" in resp["result"]["content"][0]["text"].lower()

@@ -10,7 +10,7 @@
 6.8  test_recall_memory_updates_last_accessed — last_accessed_at atualizado
 6.9  test_mcp_save_memory_missing_content — JSON-RPC error -32602
 6.10 test_mcp_recall_memory_missing_query — JSON-RPC error -32602
-6.11 test_mcp_list_tools_returns_8 — 8 ferramentas incluindo save/recall
+6.11 test_mcp_list_tools_returns_9 — 9 ferramentas incluindo save/recall
 6.12 test_recall_memory_filters_by_user_id — isolamento multi-tenant (R4.2)
 """
 
@@ -345,13 +345,13 @@ async def test_mcp_recall_memory_missing_query():
 
 
 # ---------------------------------------------------------------------------
-# 6.11 test_mcp_list_tools_returns_8
+# 6.11 test_mcp_list_tools_returns_9
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_mcp_list_tools_returns_8():
-    """GET /mcp retorna 8 ferramentas incluindo save_memory e recall_memory."""
+async def test_mcp_list_tools_returns_9():
+    """GET /mcp retorna 9 ferramentas incluindo save_memory e recall_memory."""
     from httpx import ASGITransport, AsyncClient
 
     from app.dependencies import get_current_user
@@ -369,7 +369,7 @@ async def test_mcp_list_tools_returns_8():
         body = resp.json()
         tools = body["result"]["tools"]
 
-        assert len(tools) == 8, f"Expected 8 tools, got {len(tools)}"
+        assert len(tools) == 9, f"Expected 9 tools, got {len(tools)}"
 
         tool_names = {t["name"] for t in tools}
         assert "save_memory" in tool_names

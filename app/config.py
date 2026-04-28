@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173"
 
+    # Anthropic API — obrigatório para Fase 5 (briefing automático)
+    ANTHROPIC_API_KEY: str
+
+    # Briefing — janela histórica de coleta de contexto (em dias)
+    BRIEFING_HISTORY_WINDOW_DAYS: int = 90
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

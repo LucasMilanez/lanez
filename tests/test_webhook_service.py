@@ -344,7 +344,7 @@ async def test_process_notification_success_calendar():
 
     result = await svc.process_notification(notification, cache_service, db)
 
-    assert result == (user_id, ServiceType.CALENDAR)
+    assert result == (user_id, ServiceType.CALENDAR, None)
     cache_service.invalidate.assert_called_once_with(str(user_id), ServiceType.CALENDAR)
 
 
@@ -373,7 +373,7 @@ async def test_process_notification_success_mail():
 
     result = await svc.process_notification(notification, cache_service, db)
 
-    assert result == (user_id, ServiceType.MAIL)
+    assert result == (user_id, ServiceType.MAIL, None)
     cache_service.invalidate.assert_called_once_with(str(user_id), ServiceType.MAIL)
 
 
@@ -402,7 +402,7 @@ async def test_process_notification_success_onedrive():
 
     result = await svc.process_notification(notification, cache_service, db)
 
-    assert result == (user_id, ServiceType.ONEDRIVE)
+    assert result == (user_id, ServiceType.ONEDRIVE, None)
     cache_service.invalidate.assert_called_once_with(str(user_id), ServiceType.ONEDRIVE)
 
 
@@ -668,3 +668,75 @@ async def test_renew_subscriptions_exception_does_not_propagate():
         svc = WebhookService(client=client)
         # Should not raise
         await svc.renew_subscriptions(db)
+
+
+# ---------------------------------------------------------------------------
+# Tests — process_notification event_id extraction (Fase 5)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_webhook_extracts_event_id_for_calendar():
+    """Notificação CALENDAR com resource contendo /Events/ extrai event_id."""
+    user_id = uuid.uuid4()
+    notification = WebhookNotification(
+        subscription_id="sub-calendar",
+        client_state="test-webhook-state",
+        resource="Users/abc-123/Events/event-xyz-456",
+        change_type="created",
+    )
+
+    mock_subscription = MagicMock()
+    mock_subscription.user_id = user_id
+    mock_subscription.resource = "/me/events"
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_subscription
+    db = AsyncMock()
+    db.execute.return_value = mock_result
+
+    cache_service = AsyncMock()
+    svc = WebhookService()
+
+    result = await svc.process_notification(notification, cache_service, db)
+
+    assert result is not None
+    assert result[0] == user_id
+    assert result[1] == ServiceType.CALENDAR
+    assert result[2] == "event-xyz-456"
+
+
+@pytest.mark.asyncio
+async def test_webhook_returns_none_event_id_for_non_calendar():
+    """Notificações de mail/onenote/onedrive retornam event_id=None."""
+    non_calendar_services = [
+        (ServiceType.MAIL, "/me/messages"),
+        (ServiceType.ONENOTE, "/me/onenote/pages"),
+        (ServiceType.ONEDRIVE, "/me/drive/root"),
+    ]
+
+    for service_type, resource in non_calendar_services:
+        user_id = uuid.uuid4()
+        notification = WebhookNotification(
+            subscription_id=f"sub-{service_type.value}",
+            client_state="test-webhook-state",
+            resource=resource,
+            change_type="updated",
+        )
+
+        mock_subscription = MagicMock()
+        mock_subscription.user_id = user_id
+        mock_subscription.resource = resource
+
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_subscription
+        db = AsyncMock()
+        db.execute.return_value = mock_result
+
+        cache_service = AsyncMock()
+        svc = WebhookService()
+
+        result = await svc.process_notification(notification, cache_service, db)
+
+        assert result is not None, f"Expected result for {service_type.value}"
+        assert result[2] is None, f"Expected event_id=None for {service_type.value}, got {result[2]}"

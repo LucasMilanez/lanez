@@ -3,7 +3,8 @@
 **Validates: Requirement 9 (Retorno Tuple de process_notification)**
 
 Propriedade 6: Para qualquer notificação com clientState válido,
-process_notification retorna tuple[UUID, ServiceType] ou None — nunca bool.
+process_notification retorna tuple[UUID, ServiceType, str | None] ou None
+— nunca bool. (Fase 5 expandiu a tupla com event_id no terceiro elemento.)
 
     result = await process_notification(notification, cache, db)
     assert isinstance(result, tuple) or result is None
@@ -66,13 +67,16 @@ async def test_process_notification_never_returns_bool(
         f"process_notification retornou bool ({result!r}), esperado tuple ou None"
     )
 
-    # Propriedade: retorno é tuple(UUID, ServiceType) ou None
+    # Propriedade: retorno é tuple(UUID, ServiceType, str | None) ou None
     if result is not None:
         assert isinstance(result, tuple), f"Esperado tuple, obteve {type(result)}"
-        assert len(result) == 2, f"Esperado tuple de 2 elementos, obteve {len(result)}"
-        uid, stype = result
+        assert len(result) == 3, f"Esperado tuple de 3 elementos, obteve {len(result)}"
+        uid, stype, evt = result
         assert isinstance(uid, uuid.UUID), f"Primeiro elemento não é UUID: {type(uid)}"
         assert isinstance(stype, ServiceType), f"Segundo elemento não é ServiceType: {type(stype)}"
+        assert evt is None or isinstance(evt, str), (
+            f"Terceiro elemento (event_id) deve ser str ou None, obteve {type(evt)}"
+        )
 
 
 @given(
