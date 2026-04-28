@@ -1,5 +1,6 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+"""Dependency de autenticação — aceita JWT via cookie HttpOnly OU Authorization Bearer."""
+
+from fastapi import Depends, HTTPException, Request, status
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,26 +8,45 @@ from app.config import settings
 from app.database import get_db
 from app.models.user import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/refresh")
+_COOKIE_NAME = "lanez_session"
+_JWT_ALGORITHM = "HS256"
+
+
+def _extract_token(request: Request) -> str | None:
+    """Extrai JWT do cookie HttpOnly OU do header Authorization Bearer.
+
+    Cookie tem prioridade (painel é o consumidor primário). Bearer é
+    o fallback para MCP e ferramentas CLI.
+    """
+    cookie_token = request.cookies.get(_COOKIE_NAME)
+    if cookie_token:
+        return cookie_token
+
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        return auth_header[len("Bearer "):]
+
+    return None
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Valida o JWT do header Authorization e retorna o User correspondente.
-
-    Levanta HTTP 401 se o token for inválido, expirado ou se o usuário
-    não existir no banco.
-    """
+    """Valida JWT (cookie ou Bearer) e retorna User. 401 se inválido/expirado."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Token inválido",
+        detail="Não autenticado",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    token = _extract_token(request)
+    if token is None:
+        raise credentials_exception
+
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        user_id: str | None = payload.get("user_id")
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[_JWT_ALGORITHM])
+        user_id = payload.get("user_id")
         if user_id is None:
             raise credentials_exception
     except JWTError:

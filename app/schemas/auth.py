@@ -18,3 +18,11 @@ class TokenResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+class UserMeResponse(BaseModel):
+    id: UUID
+    email: str
+    token_expires_at: datetime
+    last_sync_at: datetime | None
+    created_at: datetime
