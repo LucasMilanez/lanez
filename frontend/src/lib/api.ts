@@ -43,6 +43,31 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function requestMultipart<T>(path: string, formData: FormData): Promise<T> {
+  const response = await fetch(path, {
+    method: "POST",
+    body: formData,  // NÃO setar Content-Type — fetch + FormData fazem com boundary correto
+    credentials: "include",
+  });
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  if (!response.ok) {
+    let detail = response.statusText;
+    try {
+      const body = await response.json();
+      detail = body.detail ?? detail;
+    } catch {
+      /* mantém statusText */
+    }
+    throw new ApiError(response.status, detail);
+  }
+
+  return response.json() as Promise<T>;
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path, { method: "GET" }),
   post: <T>(path: string, body?: unknown) =>
@@ -50,4 +75,6 @@ export const api = {
       method: "POST",
       body: body ? JSON.stringify(body) : undefined,
     }),
+  postMultipart: <T>(path: string, formData: FormData) =>
+    requestMultipart<T>(path, formData),
 };

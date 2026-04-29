@@ -12,6 +12,8 @@ export default defineConfig({
       "/briefings": "http://localhost:8000",
       "/status": "http://localhost:8000",
       "/mcp": "http://localhost:8000",
+      "/voice": "http://localhost:8000",      // Fase 6b
+      "/memories": "http://localhost:8000",   // Fase 6b
     },
   },
   resolve: {

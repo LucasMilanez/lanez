@@ -2,6 +2,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, FileText, Settings, LogOut } from "lucide-react";
 import { useAuth } from "@/auth/AuthContext";
 import { Button } from "@/components/ui/button";
+import { MicButton } from "@/components/voice/MicButton";
 import { ThemeToggle } from "@/theme/ThemeToggle";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,7 @@ export function AppShell() {
       <main className="flex-1 overflow-auto">
         <header className="h-14 border-b border-border bg-card px-6 flex items-center justify-end gap-3 text-sm text-muted-foreground">
           <span>{user?.email}</span>
+          <MicButton />
           <ThemeToggle />
         </header>
         <div className="p-6 max-w-6xl mx-auto">
