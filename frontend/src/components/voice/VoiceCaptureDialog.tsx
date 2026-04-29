@@ -61,9 +61,14 @@ export function VoiceCaptureDialog({ open, onOpenChange }: VoiceCaptureDialogPro
         </DialogHeader>
 
         {recorder.state === "error" && recorder.errorMessage && (
-          <Alert variant="destructive">
-            <AlertDescription>{recorder.errorMessage}</AlertDescription>
-          </Alert>
+          <>
+            <Alert variant="destructive">
+              <AlertDescription>{recorder.errorMessage}</AlertDescription>
+            </Alert>
+            <Button variant="outline" onClick={recorder.reset}>
+              Tentar novamente
+            </Button>
+          </>
         )}
 
         {transcription === null ? (

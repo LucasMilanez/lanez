@@ -150,3 +150,32 @@ async def test_voice_transcribe_requires_auth():
         )
 
     assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_voice_transcribe_accepts_webm_with_codecs():
+    """Content-Type 'audio/webm;codecs=opus' (formato real do Chrome) → 200.
+
+    Garante que o split de raw_ct não quebre em refactor.
+    """
+    fake_user = _make_fake_user()
+    app.dependency_overrides[get_current_user] = lambda: fake_user
+    try:
+        with patch(
+            "app.routers.voice.transcribe_audio",
+            new_callable=AsyncMock,
+            return_value="ok",
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                audio_bytes = b"\x00\x01\x02\x03" * 100
+                resp = await client.post(
+                    "/voice/transcribe",
+                    files={"audio": ("audio.webm", audio_bytes, "audio/webm;codecs=opus")},
+                )
+
+            assert resp.status_code == 200
+            body = resp.json()
+            assert body["transcription"] == "ok"
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)

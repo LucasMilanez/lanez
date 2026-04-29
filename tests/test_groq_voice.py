@@ -87,3 +87,24 @@ async def test_groq_voice_raises_on_empty_text(
 
     with pytest.raises(GroqTranscriptionError, match="Groq retornou texto vazio"):
         await transcribe_audio(AUDIO_BYTES, FILENAME, CONTENT_TYPE)
+
+
+@pytest.mark.asyncio
+@patch("app.services.groq_voice.settings")
+@patch("app.services.groq_voice.httpx.AsyncClient")
+async def test_groq_voice_returns_text_on_success(
+    mock_client_cls: MagicMock,
+    mock_settings: MagicMock,
+) -> None:
+    """Groq retornando 200 com {"text": "olá mundo"} deve retornar "olá mundo"."""
+    mock_settings.GROQ_API_KEY = "test-key"
+    mock_settings.GROQ_WHISPER_MODEL = "whisper-large-v3-turbo"
+
+    mock_resp = _mock_response(status_code=200, json_data={"text": "  olá mundo  "})
+    mock_client = AsyncMock()
+    mock_client.post.return_value = mock_resp
+    mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+    result = await transcribe_audio(AUDIO_BYTES, FILENAME, CONTENT_TYPE)
+    assert result == "olá mundo"
