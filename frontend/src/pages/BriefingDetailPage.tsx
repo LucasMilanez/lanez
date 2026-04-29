@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useBriefing } from "@/hooks/useBriefing";
 import { BriefingMarkdown } from "@/components/BriefingMarkdown";
+import { BriefingTTSButton } from "@/components/BriefingTTSButton";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
@@ -61,6 +62,9 @@ export function BriefingDetailPage() {
               {a}
             </Badge>
           ))}
+        </div>
+        <div className="mt-3">
+          <BriefingTTSButton content={data.content} />
         </div>
       </div>
 
