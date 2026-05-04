@@ -47,35 +47,38 @@ export function BriefingDetailPage() {
         </Button>
       </Link>
 
-      <div>
-        <h1 className="text-2xl font-bold">{data.event_subject}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+      <div className="space-y-3">
+        <h2 className="font-display text-2xl font-semibold tracking-tight text-balance">
+          {data.event_subject}
+        </h2>
+        <p className="text-sm text-muted-foreground tabular-nums">
           {format(new Date(data.event_start), "dd 'de' MMMM 'de' yyyy '·' HH:mm", {
             locale: ptBR,
           })}
           {" — "}
           {format(new Date(data.event_end), "HH:mm", { locale: ptBR })}
         </p>
-        <div className="flex flex-wrap gap-1 mt-3">
+        <div className="flex flex-wrap gap-1">
           {data.attendees.map((a) => (
             <Badge key={a} variant="secondary">
               {a}
             </Badge>
           ))}
         </div>
-        <div className="mt-3">
+        <div>
           <BriefingTTSButton content={data.content} />
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground tabular-nums">
         Gerado em{" "}
         {format(new Date(data.generated_at), "dd/MM/yyyy 'às' HH:mm", {
           locale: ptBR,
         })}
         {" · "}
         {data.input_tokens + data.cache_read_tokens + data.cache_write_tokens} tokens
-        entrada · {data.output_tokens} saída · modelo {data.model_used}
+        entrada · {data.output_tokens} saída · modelo{" "}
+        <span className="font-mono">{data.model_used}</span>
       </p>
 
       <Separator />

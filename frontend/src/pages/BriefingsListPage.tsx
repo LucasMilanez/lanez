@@ -28,12 +28,11 @@ export function BriefingsListPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Briefings</h1>
-
       <Input
         placeholder="Buscar por assunto..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        className="max-w-md"
       />
 
       {isLoading && <LoadingSkeleton count={5} className="h-24" />}

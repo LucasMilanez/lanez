@@ -84,15 +84,14 @@ export function AuditPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Auditoria</h1>
-
       <Input
         placeholder="Buscar eventos..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        className="max-w-md"
       />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {EVENT_TYPES.map((type) => {
           const active = activeTypes.includes(type);
           return (
@@ -100,7 +99,11 @@ export function AuditPage() {
               key={type}
               type="button"
               onClick={() => toggleType(type)}
-              className={active ? "ring-2 ring-foreground/40" : "opacity-60"}
+              className={
+                active
+                  ? "rounded-md ring-2 ring-brand ring-offset-2 ring-offset-background transition-all"
+                  : "rounded-md opacity-60 hover:opacity-100 transition-opacity"
+              }
             >
               <AuditEventBadge eventType={type} />
             </button>

@@ -35,8 +35,6 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Configurações</h1>
-
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
@@ -45,35 +43,46 @@ export function SettingsPage() {
       </Alert>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Janela histórica de briefings</CardTitle>
+        <Card className="shadow-soft">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Janela histórica de briefings
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
-              {data.config.briefing_history_window_days} dias
+            <p className="font-display text-3xl font-semibold tabular-nums tracking-tight">
+              {data.config.briefing_history_window_days}
+              <span className="ml-1 text-base font-medium text-muted-foreground">
+                dias
+              </span>
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-2">
               Configurado via env no servidor
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Email autenticado</CardTitle>
+        <Card className="shadow-soft">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Email autenticado
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-lg font-medium">{user?.email}</p>
+            <p className="font-display text-base font-semibold truncate">
+              {user?.email}
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Última sincronização</CardTitle>
+        <Card className="shadow-soft">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Última sincronização
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-lg font-medium">
+            <p className="font-display text-base font-semibold tabular-nums">
               {data.last_sync_at
                 ? format(new Date(data.last_sync_at), "dd/MM/yyyy 'às' HH:mm", {
                     locale: ptBR,
@@ -83,12 +92,14 @@ export function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Token Microsoft</CardTitle>
+        <Card className="shadow-soft">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Token Microsoft
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground tabular-nums">
               Expira em{" "}
               {format(new Date(data.token_expires_at), "dd/MM/yyyy 'às' HH:mm", {
                 locale: ptBR,

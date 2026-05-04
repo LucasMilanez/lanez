@@ -47,9 +47,7 @@ export function DashboardPage() {
     : `Expira ${formatDistanceToNow(tokenExpiresAt, { addSuffix: true, locale: ptBR })}`;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
-
+    <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatusCard
           title="Microsoft 365"
@@ -80,26 +78,32 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Database className="h-4 w-4" />
+        <Card className="shadow-soft">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+              <Database className="h-4 w-4 text-muted-foreground" />
               Embeddings por serviço
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead className="text-right">Quantidade</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-[11px] uppercase tracking-wider">
+                    Serviço
+                  </TableHead>
+                  <TableHead className="text-right text-[11px] uppercase tracking-wider">
+                    Quantidade
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.embeddings_by_service.map((e) => (
                   <TableRow key={e.service}>
-                    <TableCell>{e.service}</TableCell>
-                    <TableCell className="text-right">{e.count}</TableCell>
+                    <TableCell className="font-medium">{e.service}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {e.count}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -107,39 +111,43 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart3 className="h-4 w-4" />
-              Uso de tokens 30d
+        <Card className="shadow-soft">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              Uso de tokens · 30 dias
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <TokenUsageChart data={data.tokens_30d} />
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Calendar className="h-4 w-4" />
+      <Card className="shadow-soft">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
             Briefings recentes
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {data.recent_briefings.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum briefing recente.</p>
+            <p className="text-sm text-muted-foreground py-2">
+              Nenhum briefing recente.
+            </p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="divide-y divide-border -mx-2">
               {data.recent_briefings.map((b) => (
                 <li key={b.event_id}>
                   <Link
                     to={`/briefings/${b.event_id}`}
-                    className="flex items-center justify-between rounded-md p-2 hover:bg-accent"
+                    className="flex items-center justify-between gap-4 rounded-md px-3 py-2.5 transition-colors hover:bg-accent/60"
                   >
-                    <span className="font-medium">{b.event_subject}</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="font-medium truncate">
+                      {b.event_subject}
+                    </span>
+                    <span className="text-xs text-muted-foreground tabular-nums shrink-0">
                       {format(new Date(b.event_start), "dd 'de' MMM '·' HH:mm", {
                         locale: ptBR,
                       })}

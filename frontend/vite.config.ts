@@ -3,18 +3,20 @@ import path from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const proxyTarget = process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8000";
+
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
     proxy: {
-      "/auth": "http://localhost:8000",
-      "/briefings": "http://localhost:8000",
-      "/status": "http://localhost:8000",
-      "/mcp": "http://localhost:8000",
-      "/voice": "http://localhost:8000",      // Fase 6b
-      "/memories": "http://localhost:8000",   // Fase 6b
-      "/audit": "http://localhost:8000",      // Fase 7
+      "/auth": proxyTarget,
+      "/briefings": proxyTarget,
+      "/status": proxyTarget,
+      "/mcp": proxyTarget,
+      "/voice": proxyTarget,      // Fase 6b
+      "/memories": proxyTarget,   // Fase 6b
+      "/audit": proxyTarget,      // Fase 7
     },
   },
   resolve: {
