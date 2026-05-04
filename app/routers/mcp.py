@@ -329,8 +329,19 @@ async def handle_web_search(
     searxng: SearXNGService,
 ) -> list[dict]:
     """Busca na web via SearXNG."""
+    from app.services.searxng import SearxNGUnavailable
+
     query = arguments["query"]
-    return await searxng.search(query)
+    try:
+        return await searxng.search(query)
+    except SearxNGUnavailable:
+        return [
+            {
+                "error": "web_search indisponível",
+                "message": "Esta funcionalidade requer SearXNG self-hosted. "
+                "Não está disponível na demo pública.",
+            }
+        ]
 
 
 async def handle_semantic_search(

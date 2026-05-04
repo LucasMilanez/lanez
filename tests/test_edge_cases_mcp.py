@@ -138,28 +138,28 @@ async def test_missing_required_params_returns_32602():
 
 @pytest.mark.asyncio
 async def test_searxng_unavailable_returns_domain_error():
-    """SearXNG retornando erro → domain error com isError=true."""
+    """SearXNG retornando erro → SearxNGUnavailable é levantada."""
+    from app.services.searxng import SearxNGUnavailable
+
     user = _make_user()
     db = AsyncMock()
     redis = FakeRedis()
     graph = AsyncMock()
 
-    # SearXNGService com client que falha
+    # SearXNGService com client que falha — agora levanta SearxNGUnavailable
     async with httpx.AsyncClient() as client:
         with respx.mock:
             respx.get(url__startswith="http://localhost:8080/search").mock(
                 return_value=httpx.Response(503)
             )
             searxng = SearXNGService(client=client)
-            result = await searxng.search("test query")
+            with pytest.raises(SearxNGUnavailable):
+                await searxng.search("test query")
 
-    # SearXNG retorna lista vazia em caso de erro
-    assert result == []
-
-    # Agora testar via call_tool — o handler retorna lista vazia,
-    # que é serializada como sucesso (não é domain error do handler)
+    # Testar via call_tool — handler captura SearxNGUnavailable e retorna
+    # dict com "error" (HTTP 200, não 500)
     searxng_mock = AsyncMock()
-    searxng_mock.search = AsyncMock(return_value=[])
+    searxng_mock.search = AsyncMock(side_effect=SearxNGUnavailable("indisponível"))
 
     req = MCPCallRequest(
         jsonrpc="2.0",
@@ -170,7 +170,7 @@ async def test_searxng_unavailable_returns_domain_error():
 
     resp = await call_tool(req, user, db, redis, graph, searxng_mock)
     assert "result" in resp
-    # Lista vazia é sucesso (SearXNG trata erro internamente)
+    # Handler retorna dict com "error" — serializado como sucesso (isError=False)
     assert resp["result"]["isError"] is False
 
 

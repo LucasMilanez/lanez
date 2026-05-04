@@ -82,3 +82,26 @@ def get_redis() -> aioredis.Redis:
     if redis_client is None:
         raise RuntimeError("Redis não inicializado. Chame init_redis() primeiro.")
     return redis_client
+
+
+# ---------------------------------------------------------------------------
+# Migrations (alembic upgrade head programático)
+# ---------------------------------------------------------------------------
+
+
+async def run_migrations() -> None:
+    """Executa ``alembic upgrade head`` programaticamente.
+
+    Usado no startup do app em produção e dev. Roda em thread separada
+    via ``asyncio.to_thread`` para não bloquear o event loop do FastAPI.
+    """
+    import asyncio as _asyncio
+
+    from alembic import command
+    from alembic.config import Config
+
+    def _run() -> None:
+        config = Config("alembic.ini")
+        command.upgrade(config, "head")
+
+    await _asyncio.to_thread(_run)

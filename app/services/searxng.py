@@ -16,6 +16,10 @@ logger = logging.getLogger(__name__)
 _TIMEOUT = 10.0  # segundos
 
 
+class SearxNGUnavailable(Exception):
+    """SearXNG não está acessível (timeout, connection refused, etc)."""
+
+
 class SearXNGService:
     """Cliente HTTP para o motor de busca SearXNG."""
 
@@ -47,6 +51,8 @@ class SearXNGService:
                 }
                 for r in results
             ]
+        except (httpx.ConnectError, httpx.TimeoutException) as exc:
+            raise SearxNGUnavailable(f"SearXNG indisponível: {exc}") from exc
         except httpx.HTTPError as exc:
             logger.error("Erro SearXNG: %s", exc)
-            return []
+            raise SearxNGUnavailable(f"SearXNG indisponível: {exc}") from exc

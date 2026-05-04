@@ -71,9 +71,9 @@ async def lifespan(app: FastAPI):
     await init_redis()
     logger.info("Redis inicializado")
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Tabelas do banco criadas/verificadas")
+    from app.database import run_migrations
+    await run_migrations()
+    logger.info("Migrations alembic aplicadas (alembic upgrade head)")
 
     get_model()
     logger.info("Modelo de embeddings carregado")

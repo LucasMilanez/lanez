@@ -1,0 +1,14 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/auth/:path*",      "destination": "https://lanez.fly.dev/auth/:path*" },
+    { "source": "/briefings/:path*",  "destination": "https://lanez.fly.dev/briefings/:path*" },
+    { "source": "/status/:path*",     "destination": "https://lanez.fly.dev/status/:path*" },
+    { "source": "/mcp/:path*",        "destination": "https://lanez.fly.dev/mcp/:path*" },
+    { "source": "/voice/:path*",      "destination": "https://lanez.fly.dev/voice/:path*" },
+    { "source": "/memories/:path*",   "destination": "https://lanez.fly.dev/memories/:path*" },
+    { "source": "/audit/:path*",      "destination": "https://lanez.fly.dev/audit/:path*" }
+  ]
+}
