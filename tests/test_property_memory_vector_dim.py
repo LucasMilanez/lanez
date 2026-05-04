@@ -43,7 +43,10 @@ def test_save_memory_vector_has_384_dims(content: str) -> None:
     with patch(
         "app.services.memory.generate_embedding",
         side_effect=mock_generate_embedding,
-    ) as mock_embed:
+    ) as mock_embed, patch(
+        "app.services.memory.log_event",
+        new_callable=AsyncMock,
+    ):
         from app.services.memory import save_memory
 
         asyncio.run(save_memory(db, user_id, content, tags=["test"]))
@@ -57,9 +60,11 @@ def test_save_memory_vector_has_384_dims(content: str) -> None:
             f"Esperado vetor de 384 dims, obteve {len(captured_vectors[0])}"
         )
 
-        # Verificar que o Memory foi adicionado ao db
-        db.add.assert_called_once()
-        memory_obj = db.add.call_args[0][0]
+        # Verificar que o Memory foi adicionado ao db (log_event mockado, só 1 add)
+        from app.models.memory import Memory
+        memory_adds = [c for c in db.add.call_args_list if isinstance(c[0][0], Memory)]
+        assert len(memory_adds) == 1
+        memory_obj = memory_adds[0][0][0]
         assert len(memory_obj.vector) == 384, (
             f"Vetor do Memory deve ter 384 dims, obteve {len(memory_obj.vector)}"
         )

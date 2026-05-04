@@ -125,5 +125,6 @@ async def get_status(
         ),
         config=StatusConfig(
             briefing_history_window_days=settings.BRIEFING_HISTORY_WINDOW_DAYS,
+            audit_history_window_days=settings.AUDIT_HISTORY_WINDOW_DAYS,
         ),
     )

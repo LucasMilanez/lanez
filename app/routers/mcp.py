@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -25,6 +26,7 @@ from app.database import get_db, get_redis
 from app.dependencies import get_current_user
 from app.models.briefing import Briefing
 from app.models.user import User
+from app.services.audit import AuditEventType, log_event
 from app.services.graph import GraphService
 from app.services.searxng import SearXNGService
 
@@ -362,7 +364,7 @@ async def handle_save_memory(
     content = arguments["content"]
     tags = arguments.get("tags")
     try:
-        return await save_memory(db, user.id, content, tags)
+        return await save_memory(db, user.id, content, tags, source="mcp")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -453,6 +455,36 @@ ALL_TOOLS: list[MCPTool] = [
     TOOL_RECALL_MEMORY,
     TOOL_GET_BRIEFING,
 ]
+
+
+# ---------------------------------------------------------------------------
+# Funções auxiliares — audit (Fase 7)
+# ---------------------------------------------------------------------------
+
+
+def _summarize_arguments(arguments: dict) -> dict:
+    """Resumo seguro de argumentos — chaves + tamanhos, sem PII.
+
+    Não loga conteúdo de query, content de memória, etc.
+    string  → {"type": "string", "length": int}
+    array   → {"type": "array", "length": int}
+    int/float/bool → {"type": "<typename>", "value": <value>}
+    None    → {"type": "null"}
+    other   → {"type": "<typename>"}
+    """
+    summary: dict[str, Any] = {}
+    for key, value in arguments.items():
+        if isinstance(value, str):
+            summary[key] = {"type": "string", "length": len(value)}
+        elif isinstance(value, list):
+            summary[key] = {"type": "array", "length": len(value)}
+        elif isinstance(value, (int, float, bool)):
+            summary[key] = {"type": type(value).__name__, "value": value}
+        elif value is None:
+            summary[key] = {"type": "null"}
+        else:
+            summary[key] = {"type": type(value).__name__}
+    return summary
 
 
 # ---------------------------------------------------------------------------
@@ -570,16 +602,42 @@ async def call_tool(
                 f"Parâmetro obrigatório ausente: '{param}' na ferramenta '{tool_name}'",
             )
 
-    # Despacho para handler
+    # Despacho para handler com medição de latência e audit log (Fase 7)
+    started_at = time.monotonic()
+    success = True
+    error_msg: str | None = None
     try:
         handler = TOOLS_REGISTRY[tool_name]
         data = await handler(arguments, user, db, redis, graph, searxng)
-        return jsonrpc_success(request.id, data)
+        response = jsonrpc_success(request.id, data)
     except HTTPException as exc:
-        return jsonrpc_domain_error(request.id, str(exc.detail))
+        success = False
+        error_msg = str(exc.detail)
+        response = jsonrpc_domain_error(request.id, str(exc.detail))
     except Exception as exc:
+        success = False
+        error_msg = f"Erro interno: {exc}"
         logger.exception("Erro interno na ferramenta %s", tool_name)
-        return jsonrpc_domain_error(request.id, f"Erro interno: {exc}")
+        response = jsonrpc_domain_error(request.id, error_msg)
+
+    elapsed_ms = int((time.monotonic() - started_at) * 1000)
+
+    await log_event(
+        db,
+        user_id=user.id,
+        event_type=AuditEventType.MCP_CALL,
+        event_data={
+            "tool_name": tool_name,
+            "arguments_summary": _summarize_arguments(arguments),
+            "success": success,
+            "error_message": error_msg,
+        },
+        success=success,
+        error_message=error_msg,
+        latency_ms=elapsed_ms,
+    )
+
+    return response
 
 
 @router.get("/sse")

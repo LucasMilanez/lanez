@@ -7,10 +7,13 @@ import time
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
+from app.services.audit import AuditEventType, log_event
 from app.services.groq_voice import GroqTranscriptionError, transcribe_audio
 
 logger = logging.getLogger(__name__)
@@ -38,6 +41,7 @@ _ALLOWED_CONTENT_TYPES = {
 async def transcribe(
     audio: UploadFile = File(...),
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> VoiceTranscriptionResponse:
     """Recebe áudio do mic e retorna transcrição via Groq Whisper.
 
@@ -95,6 +99,20 @@ async def transcribe(
         user.id,
         len(audio_bytes),
         elapsed_ms,
+    )
+
+    # Audit log — voice.transcribed (Fase 7)
+    await log_event(
+        db,
+        user_id=user.id,
+        event_type=AuditEventType.VOICE_TRANSCRIBED,
+        event_data={
+            "audio_bytes": len(audio_bytes),
+            "transcription_length": len(text),
+            "duration_ms": elapsed_ms,
+        },
+        success=True,
+        latency_ms=elapsed_ms,
     )
 
     return VoiceTranscriptionResponse(

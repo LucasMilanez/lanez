@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import AsyncSessionLocal, close_redis, engine, init_redis
 from app.models import Base  # importa Base + todos os modelos (side-effect)
-from app.routers import auth, briefings, graph, mcp, memories, status, voice, webhooks
+from app.routers import auth, audit, briefings, graph, mcp, memories, status, voice, webhooks
 from app.services.embeddings import get_model
 from app.services.webhook import WebhookService
 
@@ -135,3 +135,4 @@ app.include_router(briefings.router)
 app.include_router(voice.router)
 app.include_router(memories.router)
 app.include_router(status.router)
+app.include_router(audit.router)

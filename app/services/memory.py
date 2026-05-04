@@ -18,6 +18,12 @@ from app.models.memory import Memory
 from app.services.embeddings import generate_embedding
 
 # ---------------------------------------------------------------------------
+# Audit log (Fase 7)
+# ---------------------------------------------------------------------------
+
+from app.services.audit import AuditEventType, log_event
+
+# ---------------------------------------------------------------------------
 # Constantes
 # ---------------------------------------------------------------------------
 
@@ -36,6 +42,7 @@ async def save_memory(
     user_id: UUID,
     content: str,
     tags: list[str] | None = None,
+    source: str = "rest",
 ) -> dict:
     """Persiste uma nova memória. Sempre INSERT — nunca update.
 
@@ -58,6 +65,19 @@ async def save_memory(
     db.add(memory)
     await db.flush()
     await db.refresh(memory)
+
+    # Audit log — memory.created (Fase 7)
+    await log_event(
+        db,
+        user_id=user_id,
+        event_type=AuditEventType.MEMORY_CREATED,
+        event_data={
+            "tags": tags or [],
+            "content_length": len(content),
+            "source": source,
+        },
+        success=True,
+    )
 
     return {
         "id": str(memory.id),

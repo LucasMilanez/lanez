@@ -26,6 +26,7 @@ from app.config import settings
 from app.database import AsyncSessionLocal, get_db, get_redis
 from app.models.user import User, encrypt_token
 from app.schemas.auth import TokenResponse, UserMeResponse
+from app.services.audit import AuditEventType, log_event
 from app.services.webhook import WebhookService
 
 logger = logging.getLogger(__name__)
@@ -261,7 +262,20 @@ async def auth_callback(
     await db.commit()
     await db.refresh(user)
 
-    # 6. Emitir JWT interno
+    # 6. Audit log — auth.login (Fase 7)
+    await log_event(
+        db,
+        user_id=user.id,
+        event_type=AuditEventType.AUTH_LOGIN,
+        event_data={
+            "method": "oauth_callback",
+            "had_return_url": bool(state_data.get("return_url")),
+            "email": email,
+        },
+        success=True,
+    )
+
+    # 7. Emitir JWT interno
     internal_jwt = _create_jwt(str(user.id))
 
     # 7. Disparar criação de subscrições webhook como background task
@@ -333,8 +347,21 @@ async def auth_me(
 
 
 @router.post("/logout", status_code=204)
-async def auth_logout() -> Response:
-    """Limpa o cookie de sessão. Idempotente — sempre retorna 204."""
+async def auth_logout(
+    current_user: User = Depends(_get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Limpa o cookie de sessão. Requer auth para registrar audit log.
+
+    Retorna 204 com cookie expirado. 401 se não autenticado (Fase 7).
+    """
+    await log_event(
+        db,
+        user_id=current_user.id,
+        event_type=AuditEventType.AUTH_LOGOUT,
+        event_data={},
+        success=True,
+    )
     response = Response(status_code=204)
     response.delete_cookie(key=_COOKIE_NAME, path="/")
     return response
@@ -411,6 +438,15 @@ async def auth_refresh(
 
     await db.commit()
     await db.refresh(current_user)
+
+    # Audit log — auth.refresh (Fase 7)
+    await log_event(
+        db,
+        user_id=current_user.id,
+        event_type=AuditEventType.AUTH_REFRESH,
+        event_data={"expires_in_seconds": expires_in},
+        success=True,
+    )
 
     # 5. Emitir novo JWT interno
     new_jwt = _create_jwt(str(current_user.id))

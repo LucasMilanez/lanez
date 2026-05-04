@@ -14,6 +14,7 @@ export default defineConfig({
       "/mcp": "http://localhost:8000",
       "/voice": "http://localhost:8000",      // Fase 6b
       "/memories": "http://localhost:8000",   // Fase 6b
+      "/audit": "http://localhost:8000",      // Fase 7
     },
   },
   resolve: {

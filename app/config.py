@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     VOICE_MAX_AUDIO_BYTES: int = 5 * 1024 * 1024  # 5 MB
     VOICE_MAX_DURATION_SECONDS: int = 30
 
+    # Audit log — Fase 7
+    AUDIT_HISTORY_WINDOW_DAYS: int = 30
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

@@ -13,6 +13,7 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { BriefingsListPage } from "@/pages/BriefingsListPage";
 import { BriefingDetailPage } from "@/pages/BriefingDetailPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { AuditPage } from "@/pages/AuditPage";
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/briefings" element={<BriefingsListPage />} />
                   <Route path="/briefings/:eventId" element={<BriefingDetailPage />} />
+                  <Route path="/audit" element={<AuditPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                 </Route>
               </Route>

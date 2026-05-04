@@ -76,7 +76,8 @@ async def test_save_memory_empty_content():
 
 @pytest.mark.asyncio
 @patch("app.services.memory.generate_embedding", return_value=FAKE_VECTOR)
-async def test_save_memory_no_tags(mock_emb):
+@patch("app.services.memory.log_event", new_callable=AsyncMock)
+async def test_save_memory_no_tags(mock_log, mock_emb):
     """save_memory com tags=None e tags=[] → memória persistida com tags=[]."""
     for tags_input in (None, []):
         db = _make_db()
@@ -102,7 +103,8 @@ async def test_save_memory_no_tags(mock_emb):
 
 @pytest.mark.asyncio
 @patch("app.services.memory.generate_embedding", return_value=FAKE_VECTOR)
-async def test_save_memory_dirty_tags(mock_emb):
+@patch("app.services.memory.log_event", new_callable=AsyncMock)
+async def test_save_memory_dirty_tags(mock_log, mock_emb):
     """save_memory com tags=['', 'a', ' ', 'b'] → tags=['a', 'b']."""
     db = _make_db()
 
@@ -418,8 +420,13 @@ async def test_recall_memory_filters_by_user_id(mock_emb):
 
 @pytest.mark.asyncio
 @patch("app.services.memory.generate_embedding", return_value=FAKE_VECTOR)
-async def test_save_memory_does_not_commit(mock_emb):
-    """save_memory chama db.flush() exatamente uma vez e db.commit() zero vezes."""
+@patch("app.services.memory.log_event", new_callable=AsyncMock)
+async def test_save_memory_does_not_commit(mock_log, mock_emb):
+    """save_memory chama db.flush() e db.commit() zero vezes (regra M1).
+
+    Nota Fase 7: flush é chamado 2 vezes (1 para Memory + 1 para AuditLog via log_event).
+    Com log_event mockado, flush é chamado apenas 1 vez (Memory).
+    """
     db = _make_db()
 
     async def fake_refresh(obj):

@@ -29,6 +29,7 @@ async def create_memory(
         user_id=user.id,
         content=body.content,
         tags=body.tags,
+        source="rest",
     )
     return MemoryResponse(
         id=result["id"],

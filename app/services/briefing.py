@@ -20,6 +20,7 @@ from app.config import settings
 from app.models.briefing import Briefing
 from app.models.user import User
 from app.services.anthropic_client import generate_briefing_text
+from app.services.audit import AuditEventType, log_event
 from app.services.briefing_context import collect_briefing_context
 from app.services.graph import GraphService
 
@@ -249,5 +250,21 @@ async def generate_briefing(
     db.add(briefing)
     await db.flush()
     await db.refresh(briefing)
+
+    # Audit log — briefing.generated (Fase 7)
+    await log_event(
+        db,
+        user_id=user.id,
+        event_type=AuditEventType.BRIEFING_GENERATED,
+        event_data={
+            "event_id": briefing.event_id,
+            "model_used": briefing.model_used,
+            "input_tokens": briefing.input_tokens,
+            "output_tokens": briefing.output_tokens,
+            "cache_read_tokens": briefing.cache_read_tokens,
+            "cache_write_tokens": briefing.cache_write_tokens,
+        },
+        success=True,
+    )
 
     return briefing

@@ -259,10 +259,13 @@ async def test_briefing_uses_flush_not_commit():
         "app.services.briefing.generate_briefing_text",
         new_callable=AsyncMock,
         return_value=mock_llm_result,
+    ), patch(
+        "app.services.briefing.log_event",
+        new_callable=AsyncMock,
     ):
         await generate_briefing(db, redis, graph, user, "evt-new-456")
 
-    # flush DEVE ter sido chamado
+    # flush DEVE ter sido chamado (1x para Briefing; log_event mockado)
     db.flush.assert_awaited_once()
     # commit NÃO deve ter sido chamado
     db.commit.assert_not_awaited()

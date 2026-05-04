@@ -39,6 +39,9 @@ async def test_voice_transcribe_returns_text():
             "app.routers.voice.transcribe_audio",
             new_callable=AsyncMock,
             return_value="texto teste",
+        ), patch(
+            "app.routers.voice.log_event",
+            new_callable=AsyncMock,
         ):
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -165,6 +168,9 @@ async def test_voice_transcribe_accepts_webm_with_codecs():
             "app.routers.voice.transcribe_audio",
             new_callable=AsyncMock,
             return_value="ok",
+        ), patch(
+            "app.routers.voice.log_event",
+            new_callable=AsyncMock,
         ):
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:

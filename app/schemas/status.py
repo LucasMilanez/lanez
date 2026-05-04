@@ -30,6 +30,7 @@ class TokenUsageBucket(BaseModel):
 
 class StatusConfig(BaseModel):
     briefing_history_window_days: int
+    audit_history_window_days: int
 
 
 class StatusResponse(BaseModel):

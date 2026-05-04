@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -408,20 +408,30 @@ async def test_auth_me_returns_user_info():
 
 @pytest.mark.asyncio
 async def test_auth_logout_clears_cookie():
-    """POST /auth/logout retorna 204 com Set-Cookie contendo Max-Age=0."""
+    """POST /auth/logout autenticado retorna 204 com Set-Cookie contendo Max-Age=0.
+
+    Atualizado na Fase 7: /auth/logout agora requer auth (Depends(_get_current_user)).
+    """
     from httpx import ASGITransport, AsyncClient
 
+    from app.dependencies import get_current_user
     from app.main import app
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.post("/auth/logout")
+    fake_user = _make_user()
+    app.dependency_overrides[get_current_user] = lambda: fake_user
+    try:
+        with patch("app.routers.auth.log_event", new_callable=AsyncMock):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.post("/auth/logout")
 
-    assert resp.status_code == 204
+        assert resp.status_code == 204
 
-    # Verificar que Set-Cookie limpa o cookie lanez_session
-    set_cookie = resp.headers.get("set-cookie", "")
-    assert "lanez_session=" in set_cookie
-    # delete_cookie define Max-Age=0 para expirar imediatamente
-    assert 'max-age=0' in set_cookie.lower() or 'expires=' in set_cookie.lower()
-    assert "path=/" in set_cookie.lower()
+        # Verificar que Set-Cookie limpa o cookie lanez_session
+        set_cookie = resp.headers.get("set-cookie", "")
+        assert "lanez_session=" in set_cookie
+        # delete_cookie define Max-Age=0 para expirar imediatamente
+        assert 'max-age=0' in set_cookie.lower() or 'expires=' in set_cookie.lower()
+        assert "path=/" in set_cookie.lower()
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)

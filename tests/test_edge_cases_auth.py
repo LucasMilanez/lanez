@@ -584,8 +584,11 @@ async def test_duplicate_email_results_in_upsert():
     first_user_id = created_user.id
     assert result1.email == test_email
     assert result1.user_id == first_user_id
-    # db.add foi chamado (novo user)
-    db.add.assert_called_once()
+    # db.add foi chamado para novo user + audit log (Fase 7)
+    from app.models.user import User as UserModel
+    from app.models.audit import AuditLog
+    user_adds_1 = [c for c in db.add.call_args_list if isinstance(c[0][0], UserModel)]
+    assert len(user_adds_1) == 1
 
     # --- 2ª chamada: mesmo email, tokens diferentes → upsert ---
     with respx.mock:
@@ -608,8 +611,10 @@ async def test_duplicate_email_results_in_upsert():
 
     # --- Verificações de upsert ---
 
-    # 1. Apenas um db.add foi chamado (somente na 1ª chamada, não na 2ª)
-    db.add.assert_called_once()
+    # 1. Apenas um db.add de User foi chamado (somente na 1ª chamada, não na 2ª)
+    #    Fase 7 adiciona db.add de AuditLog em cada callback
+    user_adds_2 = [c for c in db.add.call_args_list if isinstance(c[0][0], UserModel)]
+    assert len(user_adds_2) == 1
 
     # 2. O id do user permaneceu o mesmo (mesmo registro, atualizado in-place)
     assert result2.user_id == first_user_id

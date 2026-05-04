@@ -21,6 +21,7 @@ from app.services.briefing import generate_briefing
 from app.services.cache import CacheService
 from app.services.embeddings import ingest_graph_data
 from app.services.graph import GraphService
+from app.services.audit import AuditEventType, log_event
 from app.services.webhook import WebhookService
 
 logger = logging.getLogger(__name__)
@@ -123,6 +124,18 @@ async def receive_graph_notification(
             result = await webhook_service.process_notification(notification, cache_service, db)
             if result is not None:
                 user_id, service_type, event_id = result
+                # Audit log — webhook.received (Fase 7)
+                await log_event(
+                    db,
+                    user_id=user_id,
+                    event_type=AuditEventType.WEBHOOK_RECEIVED,
+                    event_data={
+                        "resource": notification.resource,
+                        "change_type": notification.change_type,
+                        "subscription_id": str(notification.subscription_id),
+                    },
+                    success=True,
+                )
                 background_tasks.add_task(_reingest_background, user_id, service_type)
                 if event_id is not None and service_type == ServiceType.CALENDAR:
                     background_tasks.add_task(_briefing_background, user_id, event_id)
