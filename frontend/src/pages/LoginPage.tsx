@@ -1,135 +1,385 @@
-import { Navigate } from "react-router-dom";
-import { Sparkles, Shield, Zap, Lock } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Navigate, useSearchParams } from "react-router-dom";
+import {
+  Loader2,
+  Sparkles,
+  AlertCircle,
+  Search,
+  Brain,
+  Calendar,
+  ArrowRight,
+  ExternalLink,
+  Lock,
+  Shield,
+} from "lucide-react";
+
+function GithubIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.87-1.54-3.87-1.54-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.69 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 015.78 0c2.21-1.49 3.18-1.18 3.18-1.18.62 1.59.23 2.76.11 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.41-5.25 5.69.41.36.78 1.07.78 2.16 0 1.56-.01 2.81-.01 3.19 0 .31.21.67.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z" />
+    </svg>
+  );
+}
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/auth/AuthContext";
+import { cn } from "@/lib/utils";
+
+const GITHUB_URL = "https://github.com/LucasMilanez/lanez";
+
+const pillars = [
+  {
+    icon: Search,
+    title: "Busca semântica cross-service",
+    description:
+      "pgvector + all-MiniLM-L6-v2 (384d). Encontra por significado em e-mail, calendário, OneNote e OneDrive simultaneamente, em <2s.",
+  },
+  {
+    icon: Calendar,
+    title: "Briefings automáticos pré-reunião",
+    description:
+      "Webhook do Graph detecta o evento, coleta contexto multi-fonte (e-mails, notas, arquivos, memórias) e gera prep estruturado via Claude Haiku.",
+  },
+  {
+    icon: Brain,
+    title: "Memória persistente",
+    description:
+      "save_memory / recall_memory. A AI lembra decisões, preferências e contexto entre sessões. Cada interação fica mais inteligente que a anterior.",
+  },
+] as const;
+
+const stack = [
+  "FastAPI",
+  "PostgreSQL + pgvector",
+  "Redis",
+  "Sentence Transformers",
+  "Claude Haiku 4.5",
+  "Groq Whisper",
+  "MCP 2025-06-18",
+  "React + Vite",
+] as const;
+
+const configSnippet = `{
+  "mcpServers": {
+    "lanez": {
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "https://lanez-app.fly.dev/mcp",
+        "--header", "Authorization: Bearer <token>"
+      ]
+    }
+  }
+}`;
 
 export function LoginPage() {
   const { login, user, loading } = useAuth();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [searchParams] = useSearchParams();
+  const errorParam = searchParams.get("error");
 
-  if (loading) return null;
+  const handleLogin = useCallback(() => {
+    setIsRedirecting(true);
+    login();
+  }, [login]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-5 w-5 animate-spin text-brand" />
+      </div>
+    );
+  }
+
   if (user) return <Navigate to="/dashboard" replace />;
 
   return (
-    <div className="min-h-screen bg-background text-foreground grid lg:grid-cols-2">
-      <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden border-r border-border bg-card p-10">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.35]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 10%, hsl(var(--brand) / 0.18), transparent 45%), radial-gradient(circle at 80% 80%, hsl(var(--brand) / 0.10), transparent 50%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              "linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)",
-            backgroundSize: "32px 32px",
-            opacity: 0.18,
-            maskImage:
-              "radial-gradient(ellipse at center, black 30%, transparent 75%)",
-          }}
-        />
+    <div className="relative min-h-screen bg-background text-foreground">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[640px] overflow-hidden"
+        style={{
+          background: [
+            "radial-gradient(ellipse 80% 60% at 50% 0%, hsl(var(--brand) / 0.18), transparent 70%)",
+            "radial-gradient(ellipse 50% 40% at 80% 30%, hsl(217 91% 60% / 0.10), transparent 60%)",
+          ].join(", "),
+        }}
+      />
 
-        <div className="relative flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand text-brand-foreground shadow-soft">
-            <Sparkles className="h-4 w-4" strokeWidth={2.25} />
-          </div>
-          <span className="font-display text-lg font-semibold tracking-tight">
-            Lanez
-          </span>
-        </div>
-
-        <div className="relative space-y-8 max-w-md">
-          <div className="space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-brand">
-              MCP Server pessoal
-            </p>
-            <h2 className="font-display text-3xl font-semibold tracking-tight text-balance leading-tight">
-              Seu Microsoft 365 conectado a qualquer assistente de IA.
-            </h2>
-            <p className="text-muted-foreground leading-relaxed">
-              Calendário, e-mail, OneNote e OneDrive disponíveis via MCP — com
-              busca semântica, memória persistente e briefings gerados
-              automaticamente.
-            </p>
-          </div>
-
-          <ul className="space-y-3.5 text-sm">
-            <li className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-foreground">
-                <Zap className="h-3.5 w-3.5" />
-              </span>
-              <div>
-                <p className="font-medium">Tempo real via Graph Webhooks</p>
-                <p className="text-xs text-muted-foreground">
-                  Sem polling, sem rate limit desperdiçado.
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-foreground">
-                <Shield className="h-3.5 w-3.5" />
-              </span>
-              <div>
-                <p className="font-medium">Audit trail imutável</p>
-                <p className="text-xs text-muted-foreground">
-                  Cada acesso aos seus dados fica registrado.
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-foreground">
-                <Lock className="h-3.5 w-3.5" />
-              </span>
-              <div>
-                <p className="font-medium">OAuth 2.0 + tokens criptografados</p>
-                <p className="text-xs text-muted-foreground">
-                  Seus tokens nunca saem do banco em texto claro.
-                </p>
-              </div>
-            </li>
-          </ul>
-        </div>
-
-        <p className="relative text-xs text-muted-foreground">
-          Open source · self-hosted · sem custo de licença
-        </p>
-      </aside>
-
-      <section className="flex items-center justify-center p-6 sm:p-10">
-        <div className="w-full max-w-sm space-y-8">
-          <div className="lg:hidden flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand text-brand-foreground shadow-soft">
+      <div className="relative mx-auto max-w-3xl px-6 py-12 sm:py-16 md:py-20">
+        <header className="flex items-center justify-between mb-14">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-brand-foreground shadow-elevated">
               <Sparkles className="h-4 w-4" strokeWidth={2.25} />
             </div>
-            <span className="font-display text-lg font-semibold tracking-tight">
-              Lanez
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-base font-semibold tracking-tight">
+                Lanez
+              </span>
+              <span className="text-[11px] font-mono text-muted-foreground/70">
+                v0.1
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-2.5 py-1 backdrop-blur">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+            <span className="text-[11px] font-medium text-muted-foreground">
+              Demo ao vivo
+            </span>
+          </div>
+        </header>
+
+        <section className="space-y-6 mb-16">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-brand/20 bg-brand/[0.04] px-3 py-1">
+            <span className="text-[11px] font-medium text-brand">
+              Open source · MCP Server
             </span>
           </div>
 
-          <div className="space-y-2">
-            <h1 className="font-display text-2xl font-semibold tracking-tight">
-              Entrar
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Use sua conta Microsoft 365 para acessar o painel.
-            </p>
+          <h1 className="font-display text-4xl sm:text-5xl md:text-[3.25rem] font-semibold tracking-tight leading-[1.05]">
+            O{" "}
+            <span className="bg-gradient-to-r from-brand via-blue-400 to-cyan-300 bg-clip-text text-transparent">
+              Microsoft 365
+            </span>{" "}
+            como contexto para qualquer AI.
+          </h1>
+
+          <p className="text-[15px] sm:text-base text-muted-foreground leading-relaxed max-w-2xl">
+            Lanez é um servidor MCP self-hosted que conecta Calendar, Mail, OneNote
+            e OneDrive a Claude Desktop, Cursor, Kiro e qualquer cliente que fale o
+            protocolo. Substitui o Microsoft Copilot ($30/mês) por ~$1/mês com
+            busca semântica, memória persistente e briefings automáticos pré-reunião.
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "inline-flex items-center gap-2 rounded-xl bg-foreground text-background",
+                "h-11 px-5 text-[14px] font-semibold shadow-elevated",
+                "transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]",
+              )}
+            >
+              <GithubIcon className="h-4 w-4" />
+              Ver no GitHub
+              <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+            </a>
+
+            <Button
+              variant="outline"
+              className="h-11 px-5 text-[14px] font-medium rounded-xl"
+              onClick={handleLogin}
+              disabled={isRedirecting}
+              aria-busy={isRedirecting}
+            >
+              {isRedirecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Conectando…</span>
+                </>
+              ) : (
+                <>
+                  <span>Acessar painel</span>
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </>
+              )}
+            </Button>
           </div>
 
-          <Button className="w-full h-11" onClick={login}>
-            Entrar com Microsoft
-          </Button>
-
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Ao entrar, você autoriza o Lanez a ler seu calendário, e-mail,
-            OneNote e OneDrive via Microsoft Graph API. Você pode revogar o
-            acesso a qualquer momento no portal da Microsoft.
+          <p className="text-[11.5px] text-muted-foreground/70 leading-relaxed">
+            Login Microsoft com OAuth 2.0 + PKCE · escopos read-only · tokens criptografados Fernet AES-256
           </p>
-        </div>
-      </section>
+
+          {errorParam && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-xl border border-destructive/25 bg-destructive/[0.04] px-3.5 py-3 max-w-md"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+              <div>
+                <p className="font-medium text-[13px] text-destructive">
+                  Falha na autenticação
+                </p>
+                <p className="text-[11px] text-destructive/80 mt-0.5">
+                  Verifique sua conta Microsoft e tente novamente.
+                </p>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-2xl border border-border bg-border overflow-hidden mb-20">
+          {[
+            { value: "9", label: "MCP Tools" },
+            { value: "<2s", label: "p50 latency" },
+            { value: "204", label: "Tests passing" },
+            { value: "~$1/mês", label: "Custo demo" },
+          ].map(({ value, label }) => (
+            <div key={label} className="bg-card px-4 py-5 text-center">
+              <p className="font-display text-2xl font-semibold tracking-tight">
+                {value}
+              </p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mt-1">
+                {label}
+              </p>
+            </div>
+          ))}
+        </section>
+
+        <section className="mb-20">
+          <SectionLabel>Três pilares</SectionLabel>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {pillars.map(({ icon: Icon, title, description }) => (
+              <article
+                key={title}
+                className="rounded-2xl border border-border bg-card p-5 hover:border-brand/30 transition-colors"
+              >
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand mb-3.5">
+                  <Icon className="h-4 w-4" strokeWidth={2.25} />
+                </span>
+                <h3 className="font-display text-[15px] font-semibold tracking-tight mb-1.5">
+                  {title}
+                </h3>
+                <p className="text-[12.5px] text-muted-foreground leading-relaxed">
+                  {description}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="mb-20">
+          <SectionLabel>Conectar em 30 segundos</SectionLabel>
+          <ol className="space-y-3.5">
+            <Step n={1} title="Login Microsoft 365 (read-only)">
+              OAuth 2.0 + PKCE com escopos read-only para Calendar, Mail, OneNote
+              e OneDrive. Tokens criptografados Fernet AES-256 + PBKDF2 480k iterações.
+            </Step>
+
+            <Step n={2} title="Cole o snippet no claude_desktop_config.json">
+              <pre className="mt-3 rounded-xl border border-border bg-background p-4 overflow-x-auto text-[12px] font-mono leading-relaxed">
+                <code className="text-foreground/85">{configSnippet}</code>
+              </pre>
+            </Step>
+
+            <Step n={3} title="As 9 tools aparecem no Claude Desktop">
+              <code className="text-[11.5px] font-mono text-muted-foreground break-words">
+                get_calendar_events · search_emails · get_onenote_pages ·
+                search_files · web_search · semantic_search · save_memory ·
+                recall_memory · get_briefing
+              </code>
+            </Step>
+          </ol>
+        </section>
+
+        <section className="mb-16">
+          <SectionLabel>Stack</SectionLabel>
+          <div className="flex flex-wrap gap-2">
+            {stack.map((tech) => (
+              <span
+                key={tech}
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-[12px] font-medium text-foreground/80"
+              >
+                {tech}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-12 text-[11.5px] text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Lock className="h-3 w-3" />
+            OAuth 2.0 + PKCE
+          </span>
+          <span className="opacity-30">·</span>
+          <span className="flex items-center gap-1.5">
+            <Shield className="h-3 w-3" />
+            Read-only scopes
+          </span>
+          <span className="opacity-30">·</span>
+          <span>Audit trail append-only</span>
+          <span className="opacity-30">·</span>
+          <span>Fernet AES-256 + PBKDF2 480k</span>
+        </section>
+
+        <footer className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-8 border-t border-border/60">
+          <p className="text-[12px] text-muted-foreground">
+            Construído por{" "}
+            <a
+              href="https://github.com/LucasMilanez"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground hover:text-brand transition-colors"
+            >
+              Lucas Milanez
+            </a>
+            {" "}· deploy em Fly.io + Vercel · self-hosted
+          </p>
+          <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              GitHub
+            </a>
+            <span className="opacity-30">·</span>
+            <a
+              href="mailto:lucas.milanez@hotmail.com"
+              className="hover:text-foreground transition-colors"
+            >
+              Contato
+            </a>
+          </div>
+        </footer>
+      </div>
     </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 mb-5">
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        {children}
+      </h2>
+      <div className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
+
+function Step({
+  n,
+  title,
+  children,
+}: {
+  n: number;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex gap-4 rounded-2xl border border-border bg-card p-5">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground font-display text-[13px] font-semibold">
+        {n}
+      </span>
+      <div className="flex-1 min-w-0 pt-0.5">
+        <h4 className="font-display text-[14px] font-semibold tracking-tight mb-1">
+          {title}
+        </h4>
+        <div className="text-[13px] text-muted-foreground leading-relaxed">
+          {children}
+        </div>
+      </div>
+    </li>
   );
 }

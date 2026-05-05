@@ -37,7 +37,7 @@ describe("LoginPage", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("Entrar com Microsoft")).toBeInTheDocument();
+      expect(screen.getByText("Acessar painel")).toBeInTheDocument();
     });
   });
 });
