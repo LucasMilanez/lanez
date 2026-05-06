@@ -11,23 +11,30 @@ configura o Claude Desktop para usá-las.
 
 ## 1. Obter Bearer token
 
-O Lanez emite JWT no callback OAuth. Em modo "sem return_url", o callback
-retorna o token como JSON visível no browser.
+O Lanez emite JWT no painel web. A forma mais fácil de obter o token:
 
-1. Abrir em janela anônima: `https://lanez-app.fly.dev/auth/microsoft`
-2. Fazer login Microsoft 365.
-3. O browser exibirá uma resposta JSON do tipo:
+1. Fazer login no painel: `https://lanez.vercel.app`
+2. Ir em **Configurações** (menu lateral)
+3. Clicar em **"Gerar token MCP"**
+4. Copiar o token exibido (válido por 7 dias)
 
-   ```json
-   {
-     "access_token": "eyJhbGc...",
-     "token_type": "bearer",
-     "expires_in": 86400
-   }
-   ```
+### Alternativa (via API direta)
 
-4. Copiar o valor de `access_token`. Esse token vale ~1 dia (depende da
-   config). Para tokens longos, usar `/auth/refresh` quando expirar.
+Se já estiver autenticado (cookie ativo), acessar:
+
+```
+GET https://lanez-app.fly.dev/auth/token
+```
+
+Retorna:
+
+```json
+{
+  "access_token": "eyJhbGc...",
+  "token_type": "bearer",
+  "expires_in": 604800
+}
+```
 
 ## 2. Editar `claude_desktop_config.json`
 

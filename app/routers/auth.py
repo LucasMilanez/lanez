@@ -325,8 +325,31 @@ from app.dependencies import get_current_user as _get_current_user
 
 
 # ---------------------------------------------------------------------------
-# GET /auth/me + POST /auth/logout — Fase 6a
+# GET /auth/me + GET /auth/token + POST /auth/logout — Fase 6a
 # ---------------------------------------------------------------------------
+
+
+@router.get("/token")
+async def auth_token(
+    current_user: User = Depends(_get_current_user),
+) -> dict:
+    """Retorna um Bearer token JWT para uso em clientes MCP externos.
+
+    O usuário já deve estar autenticado (via cookie do painel ou Bearer existente).
+    Emite um novo JWT com validade de 7 dias. Útil para copiar e colar no
+    claude_desktop_config.json ou configuração de outros clientes MCP.
+    """
+    token = _create_jwt(str(current_user.id))
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "expires_in": _JWT_EXPIRE_DAYS * 24 * 60 * 60,
+        "instructions": (
+            "Cole este token no seu cliente MCP. "
+            "Exemplo para Claude Desktop: "
+            '"Authorization: Bearer <access_token>"'
+        ),
+    }
 
 
 @router.get("/me", response_model=UserMeResponse)
