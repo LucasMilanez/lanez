@@ -69,9 +69,8 @@ const stack = [
 const configSnippet = `{
   "mcpServers": {
     "lanez": {
-      "command": "npx",
+      "command": "mcp-remote",
       "args": [
-        "-y", "mcp-remote",
         "https://lanez-app.fly.dev/mcp",
         "--header", "Authorization: Bearer <token>"
       ]

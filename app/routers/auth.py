@@ -38,9 +38,10 @@ _COOKIE_NAME = "lanez_session"
 # Escopos exigidos pela Fase 1
 SCOPES = [
     "Calendars.Read",
+    "Files.Read",
     "Mail.Read",
     "Notes.Read",
-    "Files.Read",
+    "Sites.Read.All",   # SharePoint — requer admin consent no Azure
     "User.Read",
     "offline_access",
 ]
@@ -111,6 +112,7 @@ async def auth_microsoft(
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
         "state": state,
+        "prompt": "select_account",
     }
 
     authorization_url = f"{AUTHORIZE_URL}?{urlencode(params)}"

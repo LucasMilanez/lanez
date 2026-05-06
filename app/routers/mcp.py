@@ -10,9 +10,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time
 import uuid
 from collections.abc import AsyncGenerator
+from io import BytesIO
 from typing import Any
 
 import redis.asyncio as aioredis
@@ -112,11 +114,30 @@ TOOL_GET_ONENOTE_PAGES = MCPTool(
 
 TOOL_SEARCH_FILES = MCPTool(
     name="search_files",
-    description="Busca arquivos no OneDrive por nome ou conteúdo.",
+    description=(
+        "Pesquisa ficheiros no OneDrive e SharePoint por nome ou conteúdo. "
+        "Use read_content=true para ler o texto de ficheiros .txt, .md, .csv e .docx "
+        "(máximo 100 KB por ficheiro). Exemplos: 'relatório Q3', 'contrato João', "
+        "'notas de reunião maio'."
+    ),
     inputSchema={
         "type": "object",
         "properties": {
-            "query": {"type": "string", "description": "Texto de busca"},
+            "query": {
+                "type": "string",
+                "description": "Texto de busca — nome do ficheiro ou conteúdo",
+            },
+            "read_content": {
+                "type": "boolean",
+                "description": (
+                    "Se true, lê e inclui o conteúdo de ficheiros .txt, .md, .csv e .docx "
+                    "encontrados (máx 100 KB por ficheiro). Default: false."
+                ),
+            },
+            "limit": {
+                "type": "integer",
+                "description": "Número máximo de resultados (padrão: 10, máximo: 25)",
+            },
         },
         "required": ["query"],
     },
@@ -318,15 +339,64 @@ async def handle_search_files(
     graph: GraphService,
     searxng: SearXNGService,
 ) -> dict:
-    """Busca arquivos no OneDrive por nome ou conteúdo."""
+    """Pesquisa ficheiros no OneDrive + SharePoint via Graph Search API."""
+    from docx import Document  # import lazy para não penalizar startup
+
     query = arguments["query"]
-    params = {
-        "$top": "25",
-        "$select": "name,size,lastModifiedDateTime,webUrl,file,folder",
-    }
-    return await graph.fetch_with_params(
-        user, f"/me/drive/root/search(q='{query}')", params, db, redis
+    read_content = bool(arguments.get("read_content", False))
+    limit = min(int(arguments.get("limit", 10)), 25)
+
+    hits = await graph.post_graph_search(
+        user=user,
+        entity_types=["driveItem"],
+        query_string=query,
+        fields=["name", "size", "lastModifiedDateTime", "webUrl", "parentReference"],
+        limit=limit,
+        db=db,
+        redis=redis,
     )
+
+    results = []
+    for hit in hits:
+        resource = hit.get("resource", {})
+        name = resource.get("name", "")
+        size = resource.get("size", 0)
+        web_url = resource.get("webUrl", "")
+        modified = resource.get("lastModifiedDateTime", "")
+        parent_ref = resource.get("parentReference", {})
+        drive_id = parent_ref.get("driveId", "")
+        item_id = resource.get("id", "")
+
+        entry: dict = {
+            "name": name,
+            "size_bytes": size,
+            "modified": modified,
+            "url": web_url,
+        }
+
+        if read_content and item_id and drive_id:
+            ext = os.path.splitext(name)[1].lower()
+            if ext in {".txt", ".md", ".csv", ".docx"}:
+                try:
+                    raw = await graph.read_drive_item_content(
+                        user, drive_id, item_id, db, redis
+                    )
+                    if raw is None:
+                        entry["content_skipped"] = f"ficheiro demasiado grande ({size // 1024}KB)"
+                    elif ext == ".docx":
+                        doc = Document(BytesIO(raw))
+                        entry["content"] = "\n".join(p.text for p in doc.paragraphs if p.text)
+                    else:
+                        entry["content"] = raw.decode("utf-8", errors="replace")
+                except Exception as exc:
+                    logger.warning("Falha ao ler conteúdo de '%s': %s", name, exc)
+                    entry["content_skipped"] = f"erro ao ler: {exc}"
+            else:
+                entry["content_skipped"] = "formato não suportado"
+
+        results.append(entry)
+
+    return {"files": results, "total": len(results)}
 
 
 async def handle_web_search(

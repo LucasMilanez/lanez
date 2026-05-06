@@ -47,10 +47,8 @@ export function SettingsPage() {
     if (!mcpToken) return;
     const config = `"mcpServers": {
   "lanez": {
-    "command": "npx",
+    "command": "mcp-remote",
     "args": [
-      "-y",
-      "mcp-remote",
       "${mcpBaseUrl}",
       "--header",
       "Authorization: Bearer ${mcpToken}"
@@ -186,10 +184,8 @@ export function SettingsPage() {
                   <pre className="bg-muted rounded-md p-3 pr-10 text-xs font-mono whitespace-pre overflow-x-auto">
 {`"mcpServers": {
   "lanez": {
-    "command": "npx",
+    "command": "mcp-remote",
     "args": [
-      "-y",
-      "mcp-remote",
       "https://lanez-app.fly.dev/mcp",
       "--header",
       "Authorization: Bearer ${mcpToken}"

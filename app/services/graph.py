@@ -10,6 +10,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 
 import httpx
 import redis.asyncio as aioredis
@@ -46,6 +47,10 @@ _RATE_LIMIT_MAX = 200  # requisições por janela
 
 # Exponential backoff
 _BACKOFF_MAX_RETRIES = 3
+
+# Leitura de conteúdo de ficheiros
+_FILE_CONTENT_MAX_BYTES = 100 * 1024  # 100 KB
+_READABLE_EXTENSIONS = {".txt", ".md", ".csv", ".docx"}
 
 
 def calculate_backoff(attempt: int) -> int:
@@ -192,6 +197,42 @@ class GraphService:
         )
 
     # ------------------------------------------------------------------
+    # Graph API POST request with 429 backoff
+    # ------------------------------------------------------------------
+
+    async def _post_graph(
+        self, url: str, access_token: str, body: dict
+    ) -> httpx.Response:
+        """Faz POST na Graph API com exponential backoff para HTTP 429."""
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
+
+        for attempt in range(1, _BACKOFF_MAX_RETRIES + 1):
+            resp = await self._client.post(url, headers=headers, json=body)
+
+            if resp.status_code != 429:
+                return resp
+
+            retry_after = resp.headers.get("Retry-After")
+            wait = int(retry_after) if retry_after is not None else calculate_backoff(attempt)
+            logger.warning(
+                "Graph API POST 429 (tentativa %d/%d) — aguardando %ds",
+                attempt, _BACKOFF_MAX_RETRIES, wait,
+            )
+            await asyncio.sleep(wait)
+
+        logger.error(
+            "Graph API POST 429 persistente após %d tentativas",
+            _BACKOFF_MAX_RETRIES,
+        )
+        raise HTTPException(
+            status_code=429,
+            detail="Microsoft Graph API indisponível (rate limited). Tente mais tarde.",
+        )
+
+    # ------------------------------------------------------------------
     # Persistência no GraphCache (upsert)
     # ------------------------------------------------------------------
 
@@ -288,6 +329,103 @@ class GraphService:
             )
 
         return resp.json()
+
+    # ------------------------------------------------------------------
+    # post_graph_search — pesquisa via Graph Search API
+    # ------------------------------------------------------------------
+
+    async def post_graph_search(
+        self,
+        user: User,
+        entity_types: list[str],
+        query_string: str,
+        fields: list[str],
+        limit: int,
+        db: AsyncSession,
+        redis: aioredis.Redis,
+    ) -> list[dict]:
+        """Pesquisa via Graph Search API (POST /search/query).
+
+        Suporta OneDrive pessoal e SharePoint simultaneamente.
+        Retorna lista de hits com os campos pedidos.
+        """
+        await self._check_rate_limit(redis, user.id)
+
+        url = f"{self.BASE_URL}/search/query"
+        body = {
+            "requests": [{
+                "entityTypes": entity_types,
+                "query": {"queryString": query_string},
+                "from": 0,
+                "size": limit,
+                "fields": fields,
+            }]
+        }
+        access_token = user.microsoft_access_token
+        resp = await self._post_graph(url, access_token, body)
+
+        if resp.status_code == 401:
+            logger.info("Graph Search 401 para user_id=%s — renovando token", user.id)
+            new_token = await self._refresh_access_token(user, db)
+            resp = await self._post_graph(url, new_token, body)
+            if resp.status_code == 401:
+                raise HTTPException(status_code=401, detail="Token inválido. Re-autentique.")
+
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"Erro Graph Search API: {resp.status_code}",
+            )
+
+        data = resp.json()
+        hits: list[dict] = []
+        for response in data.get("value", []):
+            for hit_container in response.get("hitsContainers", []):
+                hits.extend(hit_container.get("hits", []))
+        return hits
+
+    # ------------------------------------------------------------------
+    # read_drive_item_content — download de conteúdo de ficheiro
+    # ------------------------------------------------------------------
+
+    async def read_drive_item_content(
+        self,
+        user: User,
+        drive_id: str,
+        item_id: str,
+        db: AsyncSession,
+        redis: aioredis.Redis,
+    ) -> bytes | None:
+        """Faz GET /drives/{driveId}/items/{itemId}/content — retorna bytes raw.
+
+        Retorna None se o ficheiro for maior que _FILE_CONTENT_MAX_BYTES.
+        Segue o redirect que a Graph API emite (follow_redirects=True).
+        """
+        await self._check_rate_limit(redis, user.id)
+
+        url = f"{self.BASE_URL}/drives/{drive_id}/items/{item_id}/content"
+        access_token = user.microsoft_access_token
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        resp = await self._client.get(url, headers=headers, follow_redirects=True)
+
+        if resp.status_code == 401:
+            new_token = await self._refresh_access_token(user, db)
+            headers = {"Authorization": f"Bearer {new_token}"}
+            resp = await self._client.get(url, headers=headers, follow_redirects=True)
+            if resp.status_code == 401:
+                raise HTTPException(status_code=401, detail="Token inválido. Re-autentique.")
+
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"Erro ao ler ficheiro: {resp.status_code}",
+            )
+
+        if len(resp.content) > _FILE_CONTENT_MAX_BYTES:
+            return None  # Chamador interpreta None como "demasiado grande"
+
+        return resp.content
 
     # ------------------------------------------------------------------
     # fetch_data — fluxo principal
