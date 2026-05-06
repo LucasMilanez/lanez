@@ -2,7 +2,7 @@
 
 > Self-hosted MCP server that connects AI assistants to your Microsoft 365 data — calendar, emails, OneNote, OneDrive — with semantic search, persistent memory, and automatic meeting briefings.
 
-**Replaces Microsoft Copilot ($30/user/month) with an open-source stack at ~€1-2/month.**
+**An open-source alternative for users who prefer self-hosting their AI–Microsoft 365 bridge inside their own MCP client (Claude Desktop, Cursor, etc.) instead of relying on a vendor-managed assistant.**
 
 ---
 

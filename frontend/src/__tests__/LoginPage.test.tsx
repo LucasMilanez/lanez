@@ -37,7 +37,7 @@ describe("LoginPage", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("Acessar painel")).toBeInTheDocument();
+      expect(screen.getByText("Admin login")).toBeInTheDocument();
     });
   });
 });

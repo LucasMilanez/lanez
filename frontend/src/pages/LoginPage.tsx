@@ -2,15 +2,16 @@ import { useState, useCallback } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import {
   Loader2,
-  Sparkles,
   AlertCircle,
   Search,
   Brain,
   Calendar,
+  ArrowLeft,
   ArrowRight,
   ExternalLink,
   Lock,
   Shield,
+  PlayCircle,
 } from "lucide-react";
 
 function GithubIcon({ className }: { className?: string }) {
@@ -30,6 +31,8 @@ import { useAuth } from "@/auth/AuthContext";
 import { cn } from "@/lib/utils";
 
 const GITHUB_URL = "https://github.com/LucasMilanez/lanez";
+const PORTFOLIO_URL = "https://lanez.pt";
+const DEMO_VIDEO_URL = import.meta.env.VITE_DEMO_VIDEO_URL ?? "";
 
 const pillars = [
   {
@@ -87,6 +90,13 @@ export function LoginPage() {
     login();
   }, [login]);
 
+  const scrollToDemo = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    document
+      .getElementById("demo-video")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -111,11 +121,22 @@ export function LoginPage() {
       />
 
       <div className="relative mx-auto max-w-3xl px-6 py-12 sm:py-16 md:py-20">
-        <header className="flex items-center justify-between mb-14">
+        <header className="flex items-center gap-4 mb-14">
+          <a
+            href={PORTFOLIO_URL}
+            className="group inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-3 w-3 transition-transform group-hover:-translate-x-0.5" />
+            lanez.pt
+          </a>
+          <span className="h-4 w-px bg-border" aria-hidden="true" />
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-brand-foreground shadow-elevated">
-              <Sparkles className="h-4 w-4" strokeWidth={2.25} />
-            </div>
+            <img
+              src="/favicon.svg"
+              alt=""
+              aria-hidden="true"
+              className="h-7 w-7"
+            />
             <div className="flex items-baseline gap-2">
               <span className="font-display text-base font-semibold tracking-tight">
                 Lanez
@@ -124,15 +145,6 @@ export function LoginPage() {
                 v0.1
               </span>
             </div>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-2.5 py-1 backdrop-blur">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
-            <span className="text-[11px] font-medium text-muted-foreground">
-              Demo ao vivo
-            </span>
           </div>
         </header>
 
@@ -160,61 +172,77 @@ export function LoginPage() {
 
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#demo-video"
+              onClick={scrollToDemo}
               className={cn(
                 "inline-flex items-center gap-2 rounded-xl bg-foreground text-background",
                 "h-11 px-5 text-[14px] font-semibold shadow-elevated",
                 "transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]",
               )}
             >
-              <GithubIcon className="h-4 w-4" />
-              Ver no GitHub
-              <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+              <PlayCircle className="h-4 w-4" />
+              Watch demo (60s)
             </a>
 
-            <Button
-              variant="outline"
-              className="h-11 px-5 text-[14px] font-medium rounded-xl"
-              onClick={handleLogin}
-              disabled={isRedirecting}
-              aria-busy={isRedirecting}
-            >
-              {isRedirecting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Conectando…</span>
-                </>
-              ) : (
-                <>
-                  <span>Acessar painel</span>
-                  <ArrowRight className="h-4 w-4 ml-1" />
-                </>
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "inline-flex items-center gap-2 rounded-xl border border-border bg-card",
+                "h-11 px-5 text-[14px] font-medium",
+                "transition-all duration-150 hover:border-brand/40 hover:bg-card/80",
               )}
-            </Button>
-          </div>
-
-          <p className="text-[11.5px] text-muted-foreground/70 leading-relaxed">
-            Login Microsoft com OAuth 2.0 + PKCE · escopos read-only · tokens criptografados Fernet AES-256
-          </p>
-
-          {errorParam && (
-            <div
-              role="alert"
-              className="flex items-start gap-2.5 rounded-xl border border-destructive/25 bg-destructive/[0.04] px-3.5 py-3 max-w-md"
             >
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-              <div>
-                <p className="font-medium text-[13px] text-destructive">
-                  Falha na autenticação
-                </p>
-                <p className="text-[11px] text-destructive/80 mt-0.5">
-                  Verifique sua conta Microsoft e tente novamente.
-                </p>
-              </div>
+              <GithubIcon className="h-4 w-4" />
+              View on GitHub
+              <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+            </a>
+          </div>
+        </section>
+
+        <section id="demo-video" className="mb-20 scroll-mt-12">
+          <SectionLabel>See it in action</SectionLabel>
+          <div className="overflow-hidden rounded-2xl border border-border bg-card">
+            <div className="relative aspect-video w-full bg-background">
+              {DEMO_VIDEO_URL ? (
+                <iframe
+                  src={DEMO_VIDEO_URL}
+                  title="Lanez — 60-second walkthrough"
+                  loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="absolute inset-0 h-full w-full"
+                />
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                  <PlayCircle className="h-8 w-8 opacity-40" strokeWidth={1.5} />
+                  <p className="text-[12.5px] font-medium">
+                    Vídeo em produção
+                  </p>
+                  <p className="text-[11px] opacity-70 max-w-xs text-center px-6">
+                    Walkthrough de 60 segundos chegando em breve. Enquanto isso,
+                    o código já está aberto no GitHub.
+                  </p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p className="text-[12px] text-muted-foreground">
+              60-second walkthrough: searching emails, saving memories,
+              generating briefings.
+            </p>
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground hover:text-brand transition-colors"
+            >
+              Curtiu? Vê o código no GitHub
+              <ArrowRight className="h-3.5 w-3.5" />
+            </a>
+          </div>
         </section>
 
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-2xl border border-border bg-border overflow-hidden mb-20">
@@ -311,20 +339,40 @@ export function LoginPage() {
           <span>Fernet AES-256 + PBKDF2 480k</span>
         </section>
 
+        {errorParam && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-xl border border-destructive/25 bg-destructive/[0.04] px-3.5 py-3 mb-6 max-w-md"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <div>
+              <p className="font-medium text-[13px] text-destructive">
+                Falha na autenticação
+              </p>
+              <p className="text-[11px] text-destructive/80 mt-0.5">
+                Verifique sua conta Microsoft e tente novamente.
+              </p>
+            </div>
+          </div>
+        )}
+
         <footer className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-8 border-t border-border/60">
           <p className="text-[12px] text-muted-foreground">
             Construído por{" "}
             <a
-              href="https://github.com/LucasMilanez"
-              target="_blank"
-              rel="noopener noreferrer"
+              href={PORTFOLIO_URL}
               className="font-medium text-foreground hover:text-brand transition-colors"
             >
               Lucas Milanez
             </a>
-            {" "}· deploy em Fly.io + Vercel · self-hosted
-          </p>
-          <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
+            {" · "}
+            <a
+              href={PORTFOLIO_URL}
+              className="hover:text-foreground transition-colors"
+            >
+              lanez.pt
+            </a>
+            {" · "}
             <a
               href={GITHUB_URL}
               target="_blank"
@@ -333,14 +381,27 @@ export function LoginPage() {
             >
               GitHub
             </a>
-            <span className="opacity-30">·</span>
-            <a
-              href="mailto:lucas.milanez@hotmail.com"
-              className="hover:text-foreground transition-colors"
-            >
-              Contato
-            </a>
-          </div>
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2.5 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+            onClick={handleLogin}
+            disabled={isRedirecting}
+            aria-busy={isRedirecting}
+          >
+            {isRedirecting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Conectando…</span>
+              </>
+            ) : (
+              <>
+                <span>Admin login</span>
+                <ArrowRight className="h-3.5 w-3.5 ml-0.5" />
+              </>
+            )}
+          </Button>
         </footer>
       </div>
     </div>
