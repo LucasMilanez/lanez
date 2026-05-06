@@ -1,8 +1,8 @@
 """Router MCP — expõe ferramentas do Microsoft 365 via JSON-RPC 2.0.
 
-Implementa o protocolo MCP (Model Context Protocol) sobre HTTP/SSE,
-permitindo que AI assistants (Claude Desktop, Cursor) consumam dados
-do calendário, emails, OneNote, OneDrive e busca web.
+Implementa o protocolo MCP (Model Context Protocol) sobre HTTP,
+permitindo que clientes MCP consumam dados do calendário, emails,
+OneNote, OneDrive e busca web.
 """
 
 from __future__ import annotations
@@ -11,13 +11,14 @@ import asyncio
 import json
 import logging
 import time
+import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse, Response, StreamingResponse
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy import select
@@ -35,6 +36,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/mcp", tags=["mcp"])
 
 # ---------------------------------------------------------------------------
+# Protocol Constants (MCP spec 2025-06-18)
+# ---------------------------------------------------------------------------
+
+MCP_PROTOCOL_VERSION = "2025-06-18"
+SERVER_NAME = "lanez"
+SERVER_VERSION = "0.1.0"
+
+# ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
 
@@ -49,7 +58,7 @@ class MCPCallRequest(BaseModel):
     jsonrpc: str = "2.0"
     id: str | int | None = None
     method: str
-    params: dict
+    params: dict = Field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -562,77 +571,107 @@ async def get_searxng_service() -> AsyncGenerator[SearXNGService, None]:
 
 
 # ---------------------------------------------------------------------------
-# Endpoints
+# Handler interno: _handle_initialize (Fase 11 — handshake MCP)
 # ---------------------------------------------------------------------------
 
 
-@router.get("")
-async def list_tools(user: User = Depends(get_current_user)) -> dict:
-    """Lista todas as ferramentas MCP disponíveis (JSON-RPC 2.0)."""
+def _handle_initialize(request_id: str | int | None, params: dict) -> dict:
+    """Retorna protocolVersion, capabilities e serverInfo."""
     return {
         "jsonrpc": "2.0",
+        "id": request_id,
+        "result": {
+            "protocolVersion": MCP_PROTOCOL_VERSION,
+            "capabilities": {"tools": {"listChanged": False}},
+            "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Handler interno: _handle_tools_list (Fase 11 — lista de tools)
+# ---------------------------------------------------------------------------
+
+
+def _handle_tools_list(request_id: str | int | None) -> dict:
+    """Retorna lista de tools com name, description, inputSchema."""
+    return {
+        "jsonrpc": "2.0",
+        "id": request_id,
         "result": {
             "tools": [tool.model_dump() for tool in ALL_TOOLS],
         },
     }
 
 
-@router.post("/call")
-async def call_tool(
-    request: MCPCallRequest,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    redis: aioredis.Redis = Depends(get_redis),
-    graph: GraphService = Depends(get_graph_service),
-    searxng: SearXNGService = Depends(get_searxng_service),
+# ---------------------------------------------------------------------------
+# Handler interno: _handle_ping (Fase 11 — responde ping com result vazio)
+# ---------------------------------------------------------------------------
+
+
+def _handle_ping(request_id: str | int | None) -> dict:
+    """Retorna result vazio ({})."""
+    return {"jsonrpc": "2.0", "id": request_id, "result": {}}
+
+
+# ---------------------------------------------------------------------------
+# Handler interno: _handle_tools_call (Fase 11 — reuso entre endpoints)
+# ---------------------------------------------------------------------------
+
+
+async def _handle_tools_call(
+    request_id: str | int | None,
+    params: dict,
+    user: User,
+    db: AsyncSession,
+    redis: aioredis.Redis,
+    graph: GraphService,
+    searxng: SearXNGService,
 ) -> dict:
-    """Executa uma ferramenta MCP via JSON-RPC 2.0."""
-    tool_name = request.params.get("name")
-    arguments = request.params.get("arguments", {})
+    """Executa tools/call: valida tool, valida params, dispatcha, audita.
 
-    # Validação de protocolo — method
-    if request.method != "tools/call":
-        return jsonrpc_error(
-            request.id, -32601, f"Método '{request.method}' não suportado"
-        )
+    Retorna dict JSON-RPC completo (sucesso, erro de protocolo ou erro de domínio).
+    Audit log só é registrado quando a tool passa validação de nome e params.
+    """
+    tool_name = params.get("name")
+    arguments = params.get("arguments", {})
 
-    # Validação de protocolo — ferramenta existe
+    # Validar tool existe — NÃO gera audit log
     if tool_name not in TOOLS_REGISTRY:
-        return jsonrpc_error(
-            request.id, -32601, f"Ferramenta '{tool_name}' não encontrada"
-        )
+        return jsonrpc_error(request_id, -32601, f"Ferramenta '{tool_name}' não encontrada")
 
-    # Validação de parâmetros obrigatórios via inputSchema
+    # Validar params obrigatórios — NÃO gera audit log
     tool_def = TOOLS_MAP[tool_name]
     required_params = tool_def.inputSchema.get("required", [])
     for param in required_params:
         if param not in arguments:
             return jsonrpc_error(
-                request.id,
+                request_id,
                 -32602,
                 f"Parâmetro obrigatório ausente: '{param}' na ferramenta '{tool_name}'",
             )
 
-    # Despacho para handler com medição de latência e audit log (Fase 7)
+    # Dispatch + medição — a partir daqui, audit log SEMPRE é registrado
     started_at = time.monotonic()
     success = True
     error_msg: str | None = None
     try:
         handler = TOOLS_REGISTRY[tool_name]
         data = await handler(arguments, user, db, redis, graph, searxng)
-        response = jsonrpc_success(request.id, data)
+        response = jsonrpc_success(request_id, data)
     except HTTPException as exc:
         success = False
         error_msg = str(exc.detail)
-        response = jsonrpc_domain_error(request.id, str(exc.detail))
+        response = jsonrpc_domain_error(request_id, str(exc.detail))
     except Exception as exc:
         success = False
         error_msg = f"Erro interno: {exc}"
         logger.exception("Erro interno na ferramenta %s", tool_name)
-        response = jsonrpc_domain_error(request.id, error_msg)
+        response = jsonrpc_domain_error(request_id, error_msg)
 
     elapsed_ms = int((time.monotonic() - started_at) * 1000)
 
+    # Audit log
     await log_event(
         db,
         user_id=user.id,
@@ -649,6 +688,91 @@ async def call_tool(
     )
 
     return response
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("")
+async def list_tools(user: User = Depends(get_current_user)) -> dict:
+    """Lista todas as ferramentas MCP disponíveis (JSON-RPC 2.0)."""
+    return {
+        "jsonrpc": "2.0",
+        "result": {
+            "tools": [tool.model_dump() for tool in ALL_TOOLS],
+        },
+    }
+
+
+@router.post("")
+@router.post("/")
+async def mcp_dispatch(
+    request: MCPCallRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis),
+    graph: GraphService = Depends(get_graph_service),
+    searxng: SearXNGService = Depends(get_searxng_service),
+) -> Response:
+    """Dispatcher JSON-RPC 2.0 conforme MCP spec 2025-06-18 (Streamable HTTP)."""
+    # Validar envelope
+    if request.jsonrpc != "2.0":
+        return JSONResponse(jsonrpc_error(request.id, -32600, "jsonrpc deve ser '2.0'"))
+
+    method = request.method
+    params = request.params
+
+    # Notification: notifications/initialized → 202 sem body (política permissiva: ignora id)
+    if method == "notifications/initialized":
+        return Response(status_code=202)
+
+    # Dispatch por método
+    if method == "initialize":
+        response_data = _handle_initialize(request.id, params)
+    elif method == "ping":
+        response_data = _handle_ping(request.id)
+    elif method == "tools/list":
+        response_data = _handle_tools_list(request.id)
+    elif method == "tools/call":
+        response_data = await _handle_tools_call(
+            request.id, params, user, db, redis, graph, searxng
+        )
+    else:
+        response_data = jsonrpc_error(request.id, -32601, f"Método '{method}' não suportado")
+
+    # Header de sessão stateless
+    headers = {}
+    if method == "initialize":
+        headers["Mcp-Session-Id"] = str(uuid.uuid4())
+
+    return JSONResponse(response_data, headers=headers)
+
+
+@router.post("/call")
+async def call_tool(
+    request: MCPCallRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis),
+    graph: GraphService = Depends(get_graph_service),
+    searxng: SearXNGService = Depends(get_searxng_service),
+) -> JSONResponse:
+    """Executa uma ferramenta MCP via JSON-RPC 2.0 (endpoint legado — deprecated)."""
+    logger.warning("deprecated endpoint POST /mcp/call usado — cliente deve migrar para POST /mcp")
+
+    # Validação de protocolo — method (apenas tools/call permitido neste endpoint)
+    if request.method != "tools/call":
+        return JSONResponse(
+            jsonrpc_error(request.id, -32601, f"Método '{request.method}' não suportado")
+        )
+
+    # Delegar para handler compartilhado
+    result = await _handle_tools_call(
+        request.id, request.params, user, db, redis, graph, searxng
+    )
+    return JSONResponse(result)
 
 
 @router.get("/sse")

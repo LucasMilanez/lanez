@@ -294,6 +294,7 @@ async def test_recall_memory_updates_last_accessed(mock_emb):
 @pytest.mark.asyncio
 async def test_mcp_save_memory_missing_content():
     """POST /mcp/call save_memory sem content → JSON-RPC error -32602."""
+    import json as _json
     from app.routers.mcp import MCPCallRequest, call_tool
 
     user = _make_user()
@@ -310,6 +311,7 @@ async def test_mcp_save_memory_missing_content():
     )
 
     resp = await call_tool(req, user, db, redis, graph, searxng)
+    resp = _json.loads(resp.body.decode("utf-8"))
 
     assert "error" in resp
     assert resp["error"]["code"] == -32602
@@ -324,6 +326,7 @@ async def test_mcp_save_memory_missing_content():
 @pytest.mark.asyncio
 async def test_mcp_recall_memory_missing_query():
     """POST /mcp/call recall_memory sem query → JSON-RPC error -32602."""
+    import json as _json
     from app.routers.mcp import MCPCallRequest, call_tool
 
     user = _make_user()
@@ -340,6 +343,7 @@ async def test_mcp_recall_memory_missing_query():
     )
 
     resp = await call_tool(req, user, db, redis, graph, searxng)
+    resp = _json.loads(resp.body.decode("utf-8"))
 
     assert "error" in resp
     assert resp["error"]["code"] == -32602

@@ -42,6 +42,12 @@ from app.routers.mcp import (
 from app.services.graph import GraphService, _RATE_LIMIT_MAX, _RATE_LIMIT_WINDOW
 
 
+def _parse_json_response(resp) -> dict:
+    """Extract dict from JSONResponse (call_tool now returns JSONResponse)."""
+    import json as _json
+    return _json.loads(resp.body.decode("utf-8"))
+
+
 # ---------------------------------------------------------------------------
 # Strategies
 # ---------------------------------------------------------------------------
@@ -134,6 +140,7 @@ def test_jsonrpc_response_always_valid(tool_name, request_id, arguments) -> None
     resp = asyncio.run(
         call_tool(req, user, db, fake_redis, graph, searxng)
     )
+    resp = _parse_json_response(resp)
 
     # Invariante 1: jsonrpc == "2.0"
     assert resp["jsonrpc"] == "2.0", f"jsonrpc deve ser '2.0': {resp}"
@@ -205,6 +212,7 @@ def test_protocol_error_unknown_tool(tool_name, request_id) -> None:
     resp = asyncio.run(
         call_tool(req, user, db, fake_redis, graph, searxng)
     )
+    resp = _parse_json_response(resp)
 
     assert "error" in resp, f"Deve ter campo 'error': {resp}"
     assert "result" not in resp, f"Não deve ter campo 'result': {resp}"
@@ -236,6 +244,7 @@ def test_protocol_error_missing_params(tool_name, request_id) -> None:
     resp = asyncio.run(
         call_tool(req, user, db, fake_redis, graph, searxng)
     )
+    resp = _parse_json_response(resp)
 
     assert "error" in resp, f"Deve ter campo 'error': {resp}"
     assert "result" not in resp, f"Não deve ter campo 'result': {resp}"
@@ -269,6 +278,7 @@ def test_domain_error_has_result_not_error(request_id) -> None:
     resp = asyncio.run(
         call_tool(req, user, db, fake_redis, graph, searxng)
     )
+    resp = _parse_json_response(resp)
 
     assert "result" in resp, f"Deve ter campo 'result': {resp}"
     assert "error" not in resp, f"Não deve ter campo 'error': {resp}"

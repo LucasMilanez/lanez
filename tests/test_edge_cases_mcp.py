@@ -37,6 +37,12 @@ from app.services.searxng import SearXNGService
 # ---------------------------------------------------------------------------
 
 
+def _parse_json_response(resp) -> dict:
+    """Extract dict from JSONResponse (call_tool now returns JSONResponse)."""
+    import json as _json
+    return _json.loads(resp.body.decode("utf-8"))
+
+
 def _make_user(user_id: uuid.UUID | None = None) -> MagicMock:
     user = MagicMock()
     user.id = user_id or uuid.uuid4()
@@ -95,6 +101,7 @@ async def test_unknown_tool_returns_32601():
     )
 
     resp = await call_tool(req, user, db, redis, graph, searxng)
+    resp = _parse_json_response(resp)
 
     assert "error" in resp
     assert "result" not in resp
@@ -124,6 +131,7 @@ async def test_missing_required_params_returns_32602():
     )
 
     resp = await call_tool(req, user, db, redis, graph, searxng)
+    resp = _parse_json_response(resp)
 
     assert "error" in resp
     assert "result" not in resp
@@ -169,6 +177,7 @@ async def test_searxng_unavailable_returns_domain_error():
     )
 
     resp = await call_tool(req, user, db, redis, graph, searxng_mock)
+    resp = _parse_json_response(resp)
     assert "result" in resp
     # Handler retorna dict com "error" — serializado como sucesso (isError=False)
     assert resp["result"]["isError"] is False
@@ -263,6 +272,7 @@ async def test_rate_limit_exceeded_returns_domain_error():
     )
 
     resp = await call_tool(req, user, db, fake_redis, graph, searxng)
+    resp = _parse_json_response(resp)
 
     assert "result" in resp
     assert "error" not in resp
@@ -331,6 +341,7 @@ async def test_wrong_method_returns_32601():
     )
 
     resp = await call_tool(req, user, db, redis, graph, searxng)
+    resp = _parse_json_response(resp)
 
     assert "error" in resp
     assert "result" not in resp
@@ -395,6 +406,7 @@ async def test_semantic_search_missing_query_returns_32602():
     )
 
     resp = await call_tool(req, user, db, redis, graph, searxng)
+    resp = _parse_json_response(resp)
 
     assert "error" in resp
     assert "result" not in resp
@@ -515,6 +527,7 @@ async def test_mcp_get_briefing_404_when_missing():
     )
 
     resp = await call_tool(req, user, db, redis, graph, searxng)
+    resp = _parse_json_response(resp)
 
     assert "result" in resp
     assert resp["result"]["isError"] is True

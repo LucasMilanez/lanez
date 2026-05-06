@@ -35,3 +35,15 @@ Thumbs.db
 
 # Byte-compiled
 *.pyc
+
+# Kiro specs & AI tooling
+.kiro/
+
+# Internal docs (briefings, audits)
+docs/kiro-briefing-*.md
+docs/auditoria-*.md
+
+# Temporary/scratch files
+_preflight_verify*.py
+hello-fly/
+lerantes.md

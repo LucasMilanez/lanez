@@ -153,7 +153,7 @@ export function LoginPage() {
 
           <p className="text-[15px] sm:text-base text-muted-foreground leading-relaxed max-w-2xl">
             Lanez é um servidor MCP self-hosted que conecta Calendar, Mail, OneNote
-            e OneDrive a Claude Desktop, Cursor, Kiro e qualquer cliente que fale o
+            e OneDrive a Claude Desktop, Cursor e qualquer cliente que fale o
             protocolo. Substitui o Microsoft Copilot ($30/mês) por ~$1/mês com
             busca semântica, memória persistente e briefings automáticos pré-reunião.
           </p>

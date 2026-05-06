@@ -2,19 +2,19 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "trailingSlash": false,
   "rewrites": [
-    { "source": "/auth/:path*",      "destination": "https://lanez-app.fly.dev/auth/:path*" },
-    { "source": "/briefings/:path*",  "destination": "https://lanez-app.fly.dev/briefings/:path*" },
-    { "source": "/briefings",         "destination": "https://lanez-app.fly.dev/briefings" },
-    { "source": "/status/:path*",     "destination": "https://lanez-app.fly.dev/status/:path*" },
-    { "source": "/status",            "destination": "https://lanez-app.fly.dev/status" },
-    { "source": "/mcp/:path*",        "destination": "https://lanez-app.fly.dev/mcp/:path*" },
-    { "source": "/voice/:path*",      "destination": "https://lanez-app.fly.dev/voice/:path*" },
-    { "source": "/memories/:path*",   "destination": "https://lanez-app.fly.dev/memories/:path*" },
-    { "source": "/memories",          "destination": "https://lanez-app.fly.dev/memories" },
-    { "source": "/audit/:path*",      "destination": "https://lanez-app.fly.dev/audit/:path*" },
-    { "source": "/audit",             "destination": "https://lanez-app.fly.dev/audit" },
-    { "source": "/:path*",            "destination": "/index.html" }
+    { "source": "/auth/(.*)",       "destination": "https://lanez-app.fly.dev/auth/$1" },
+    { "source": "/briefings/(.*)",  "destination": "https://lanez-app.fly.dev/briefings/$1" },
+    { "source": "/briefings",       "destination": "https://lanez-app.fly.dev/briefings" },
+    { "source": "/status/(.*)",     "destination": "https://lanez-app.fly.dev/status/$1" },
+    { "source": "/status",          "destination": "https://lanez-app.fly.dev/status" },
+    { "source": "/mcp/(.*)",        "destination": "https://lanez-app.fly.dev/mcp/$1" },
+    { "source": "/voice/(.*)",      "destination": "https://lanez-app.fly.dev/voice/$1" },
+    { "source": "/memories/(.*)",   "destination": "https://lanez-app.fly.dev/memories/$1" },
+    { "source": "/memories",        "destination": "https://lanez-app.fly.dev/memories" },
+    { "source": "/audit/(.*)",      "destination": "https://lanez-app.fly.dev/audit/$1" },
+    { "source": "/audit",           "destination": "https://lanez-app.fly.dev/audit" },
+    { "source": "/healthz",         "destination": "https://lanez-app.fly.dev/healthz" },
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
   ]
 }
