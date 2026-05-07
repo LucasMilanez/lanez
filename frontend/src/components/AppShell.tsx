@@ -8,6 +8,7 @@ import {
   LogOut,
   Sparkles,
   Menu,
+  Brain,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/briefings", label: "Briefings", icon: FileText },
+  { to: "/memories", label: "Memórias", icon: Brain },
   { to: "/audit", label: "Auditoria", icon: History },
   { to: "/settings", label: "Configurações", icon: Settings },
 ];
@@ -31,6 +33,10 @@ const pageTitles: Record<string, { title: string; description: string }> = {
   "/briefings": {
     title: "Briefings",
     description: "Histórico de preparações automáticas de reunião",
+  },
+  "/memories": {
+    title: "Memórias",
+    description: "Contexto persistente guardado para sessões futuras",
   },
   "/audit": {
     title: "Auditoria",

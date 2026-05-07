@@ -96,11 +96,14 @@ export function DashboardPage() {
           icon={<FileText className="h-4 w-4" />}
         />
 
-        <StatusCard
-          title="Memórias"
-          value={data.memories_count}
-          icon={<Brain className="h-4 w-4" />}
-        />
+        <Link to="/memories">
+          <StatusCard
+            title="Memórias"
+            value={data.memories_count}
+            description="Ver e gerir memórias"
+            icon={<Brain className="h-4 w-4" />}
+          />
+        </Link>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

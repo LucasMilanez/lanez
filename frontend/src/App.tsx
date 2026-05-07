@@ -14,6 +14,7 @@ import { BriefingsListPage } from "@/pages/BriefingsListPage";
 import { BriefingDetailPage } from "@/pages/BriefingDetailPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { AuditPage } from "@/pages/AuditPage";
+import { MemoriesPage } from "@/pages/MemoriesPage";
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
                   <Route path="/briefings" element={<BriefingsListPage />} />
                   <Route path="/briefings/:eventId" element={<BriefingDetailPage />} />
                   <Route path="/audit" element={<AuditPage />} />
+                  <Route path="/memories" element={<MemoriesPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                 </Route>
               </Route>
