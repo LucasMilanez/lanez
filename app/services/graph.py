@@ -428,6 +428,87 @@ class GraphService:
         return resp.content
 
     # ------------------------------------------------------------------
+    # read_onenote_page_content — conteúdo HTML de uma página OneNote
+    # ------------------------------------------------------------------
+
+    async def read_onenote_page_content(
+        self,
+        user: User,
+        page_id: str,
+        db: AsyncSession,
+        redis: aioredis.Redis,
+    ) -> str | None:
+        """Faz GET /me/onenote/pages/{id}/content — retorna texto sem HTML.
+
+        Retorna None se a página for maior que _FILE_CONTENT_MAX_BYTES ou inacessível.
+        """
+        import re
+
+        await self._check_rate_limit(redis, user.id)
+
+        url = f"{self.BASE_URL}/me/onenote/pages/{page_id}/content"
+        access_token = user.microsoft_access_token
+
+        resp = await self._request_graph(url, access_token)
+
+        if resp.status_code == 401:
+            new_token = await self._refresh_access_token(user, db)
+            resp = await self._request_graph(url, new_token)
+            if resp.status_code == 401:
+                raise HTTPException(status_code=401, detail="Token inválido. Re-autentique.")
+
+        if resp.status_code != 200:
+            return None
+
+        if len(resp.content) > _FILE_CONTENT_MAX_BYTES:
+            return None
+
+        html = resp.text
+        text = re.sub(r"<[^>]+>", " ", html)
+        text = re.sub(r"\s+", " ", text).strip()
+        return text or None
+
+    # ------------------------------------------------------------------
+    # resolve_share_url — resolve URL partilhado para driveItem
+    # ------------------------------------------------------------------
+
+    async def resolve_share_url(
+        self,
+        user: User,
+        share_url: str,
+        db: AsyncSession,
+        redis: aioredis.Redis,
+    ) -> dict:
+        """Resolve um URL do SharePoint/OneDrive para driveItem via /shares/{encoded}/driveItem.
+
+        O share_id é u!<base64url(url)> conforme a Graph API Sharing spec.
+        """
+        import base64
+
+        await self._check_rate_limit(redis, user.id)
+
+        encoded = base64.urlsafe_b64encode(share_url.encode()).rstrip(b"=").decode()
+        share_id = f"u!{encoded}"
+        url = f"{self.BASE_URL}/shares/{share_id}/driveItem"
+        access_token = user.microsoft_access_token
+
+        resp = await self._request_graph(url, access_token)
+
+        if resp.status_code == 401:
+            new_token = await self._refresh_access_token(user, db)
+            resp = await self._request_graph(url, new_token)
+            if resp.status_code == 401:
+                raise HTTPException(status_code=401, detail="Token inválido. Re-autentique.")
+
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"Não foi possível resolver o URL partilhado: {resp.status_code}",
+            )
+
+        return resp.json()
+
+    # ------------------------------------------------------------------
     # fetch_data — fluxo principal
     # ------------------------------------------------------------------
 

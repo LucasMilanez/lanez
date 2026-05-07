@@ -98,7 +98,10 @@ TOOL_SEARCH_EMAILS = MCPTool(
 
 TOOL_GET_ONENOTE_PAGES = MCPTool(
     name="get_onenote_pages",
-    description="Lista páginas do OneNote, opcionalmente filtrando por título.",
+    description=(
+        "Lista páginas do OneNote, opcionalmente filtrando por título. "
+        "Use read_content=true para incluir o texto completo de cada página (máx 100 KB por página)."
+    ),
     inputSchema={
         "type": "object",
         "properties": {
@@ -106,6 +109,13 @@ TOOL_GET_ONENOTE_PAGES = MCPTool(
             "query": {
                 "type": "string",
                 "description": "Filtro por título da página (opcional)",
+            },
+            "read_content": {
+                "type": "boolean",
+                "description": (
+                    "Se true, inclui o conteúdo de texto de cada página "
+                    "(máx 100 KB por página). Default: false."
+                ),
             },
         },
         "required": [],
@@ -264,6 +274,26 @@ TOOL_GET_BRIEFING = MCPTool(
     },
 )
 
+TOOL_READ_FILE_BY_URL = MCPTool(
+    name="read_file_by_url",
+    description=(
+        "Lê o conteúdo de um ficheiro a partir de um URL direto do SharePoint ou OneDrive. "
+        "Use quando o utilizador partilhar um link direto para um ficheiro "
+        "(ex: https://lanezz-my.sharepoint.com/.../documento.docx). "
+        "Suporta .txt, .md, .csv e .docx (máximo 100 KB)."
+    ),
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "url": {
+                "type": "string",
+                "description": "URL direto do ficheiro no SharePoint ou OneDrive",
+            },
+        },
+        "required": ["url"],
+    },
+)
+
 
 # ---------------------------------------------------------------------------
 # Handlers das ferramentas MCP
@@ -307,7 +337,7 @@ async def handle_search_emails(
     params = {
         "$search": f'"{query}"',
         "$top": str(limit),
-        "$select": "subject,from,receivedDateTime,bodyPreview,isRead",
+        "$select": "subject,from,receivedDateTime,body,isRead",
     }
     return await graph.fetch_with_params(user, "/me/messages", params, db, redis)
 
@@ -322,13 +352,29 @@ async def handle_get_onenote_pages(
 ) -> dict:
     """Lista páginas do OneNote, opcionalmente filtrando por título."""
     query = arguments.get("query")
+    read_content = bool(arguments.get("read_content", False))
     params: dict[str, str] = {
         "$top": "50",
-        "$select": "title,createdDateTime,lastModifiedDateTime,parentNotebook",
+        "$select": "id,title,createdDateTime,lastModifiedDateTime,parentNotebook",
     }
     if query:
         params["$filter"] = f"contains(title, '{query}')"
-    return await graph.fetch_with_params(user, "/me/onenote/pages", params, db, redis)
+
+    data = await graph.fetch_with_params(user, "/me/onenote/pages", params, db, redis)
+
+    if not read_content:
+        return data
+
+    for page in data.get("value", []):
+        page_id = page.get("id", "")
+        if page_id:
+            content = await graph.read_onenote_page_content(user, page_id, db, redis)
+            if content is not None:
+                page["content"] = content
+            else:
+                page["content_skipped"] = "demasiado grande ou inacessível"
+
+    return data
 
 
 async def handle_search_files(
@@ -506,6 +552,59 @@ async def handle_get_briefing(
     }
 
 
+async def handle_read_file_by_url(
+    arguments: dict,
+    user: User,
+    db: AsyncSession,
+    redis: aioredis.Redis,
+    graph: GraphService,
+    searxng: SearXNGService,
+) -> dict:
+    """Lê conteúdo de um ficheiro via URL direto do SharePoint/OneDrive."""
+    from docx import Document
+
+    url = arguments["url"]
+
+    item = await graph.resolve_share_url(user, url, db, redis)
+
+    name = item.get("name", "")
+    size = item.get("size", 0)
+    parent_ref = item.get("parentReference", {})
+    drive_id = parent_ref.get("driveId", "")
+    item_id = item.get("id", "")
+
+    if not drive_id or not item_id:
+        raise HTTPException(
+            status_code=422,
+            detail="Não foi possível obter driveId/itemId do ficheiro.",
+        )
+
+    ext = os.path.splitext(name)[1].lower()
+    result: dict = {
+        "name": name,
+        "size_bytes": size,
+        "url": item.get("webUrl", url),
+    }
+
+    if ext in {".txt", ".md", ".csv", ".docx"}:
+        try:
+            raw = await graph.read_drive_item_content(user, drive_id, item_id, db, redis)
+            if raw is None:
+                result["content_skipped"] = f"ficheiro demasiado grande ({size // 1024}KB)"
+            elif ext == ".docx":
+                doc = Document(BytesIO(raw))
+                result["content"] = "\n".join(p.text for p in doc.paragraphs if p.text)
+            else:
+                result["content"] = raw.decode("utf-8", errors="replace")
+        except Exception as exc:
+            logger.warning("Falha ao ler conteúdo de '%s': %s", name, exc)
+            result["content_skipped"] = f"erro ao ler: {exc}"
+    else:
+        result["content_skipped"] = "formato não suportado"
+
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Registros de ferramentas
 # ---------------------------------------------------------------------------
@@ -520,6 +619,7 @@ TOOLS_REGISTRY: dict[str, Any] = {
     "save_memory": handle_save_memory,
     "recall_memory": handle_recall_memory,
     "get_briefing": handle_get_briefing,
+    "read_file_by_url": handle_read_file_by_url,
 }
 
 TOOLS_MAP: dict[str, MCPTool] = {
@@ -532,6 +632,7 @@ TOOLS_MAP: dict[str, MCPTool] = {
     "save_memory": TOOL_SAVE_MEMORY,
     "recall_memory": TOOL_RECALL_MEMORY,
     "get_briefing": TOOL_GET_BRIEFING,
+    "read_file_by_url": TOOL_READ_FILE_BY_URL,
 }
 
 ALL_TOOLS: list[MCPTool] = [
@@ -544,6 +645,7 @@ ALL_TOOLS: list[MCPTool] = [
     TOOL_SAVE_MEMORY,
     TOOL_RECALL_MEMORY,
     TOOL_GET_BRIEFING,
+    TOOL_READ_FILE_BY_URL,
 ]
 
 
