@@ -37,21 +37,21 @@ const DEMO_VIDEO_URL = import.meta.env.VITE_DEMO_VIDEO_URL ?? "";
 const pillars = [
   {
     icon: Search,
-    title: "Busca semântica cross-service",
+    title: "Find anything, instantly",
     description:
-      "pgvector + all-MiniLM-L6-v2 (384d). Encontra por significado em e-mail, calendário, OneNote e OneDrive simultaneamente, em <2s.",
+      "Ask in plain language across email, calendar, OneNote, and OneDrive at once. No folder-diving, no keyword guessing — results in under 2 seconds.",
   },
   {
     icon: Calendar,
-    title: "Briefings automáticos pré-reunião",
+    title: "Always prepared for meetings",
     description:
-      "Webhook do Graph detecta o evento, coleta contexto multi-fonte (e-mails, notas, arquivos, memórias) e gera prep estruturado via Claude Haiku.",
+      "Before every meeting, Lanez automatically pulls relevant emails, notes, and files and turns them into a structured briefing. Walk in knowing your context.",
   },
   {
     icon: Brain,
-    title: "Memória persistente",
+    title: "Memory that grows with you",
     description:
-      "save_memory / recall_memory. A AI lembra decisões, preferências e contexto entre sessões. Cada interação fica mais inteligente que a anterior.",
+      "Lanez remembers decisions, preferences, and ongoing projects across sessions. The more you use it, the more useful it becomes.",
   },
 ] as const;
 
@@ -155,18 +155,18 @@ export function LoginPage() {
           </div>
 
           <h1 className="font-display text-4xl sm:text-5xl md:text-[3.25rem] font-semibold tracking-tight leading-[1.05]">
-            O{" "}
+            Your{" "}
             <span className="bg-gradient-to-r from-brand via-blue-400 to-cyan-300 bg-clip-text text-transparent">
               Microsoft 365
-            </span>{" "}
-            como contexto para qualquer AI.
+            </span>
+            , as context for any AI.
           </h1>
 
           <p className="text-[15px] sm:text-base text-muted-foreground leading-relaxed max-w-2xl">
-            Lanez é um servidor MCP self-hosted que conecta Calendar, Mail, OneNote
-            e OneDrive a Claude Desktop, Cursor e qualquer cliente que fale o
-            protocolo. Substitui o Microsoft Copilot ($30/mês) por ~$1/mês com
-            busca semântica, memória persistente e briefings automáticos pré-reunião.
+            Lanez is a self-hosted MCP server that gives any AI full access to your
+            Microsoft 365 — calendar, mail, notes, and files. Semantic search,
+            persistent memory, and automatic pre-meeting briefings, all running on
+            your own infrastructure.
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -217,11 +217,11 @@ export function LoginPage() {
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
                   <PlayCircle className="h-8 w-8 opacity-40" strokeWidth={1.5} />
                   <p className="text-[12.5px] font-medium">
-                    Vídeo em produção
+                    Demo coming soon
                   </p>
                   <p className="text-[11px] opacity-70 max-w-xs text-center px-6">
-                    Walkthrough de 60 segundos chegando em breve. Enquanto isso,
-                    o código já está aberto no GitHub.
+                    60-second walkthrough dropping soon. In the meantime,
+                    the code is already open on GitHub.
                   </p>
                 </div>
               )}
@@ -238,7 +238,7 @@ export function LoginPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground hover:text-brand transition-colors"
             >
-              Curtiu? Vê o código no GitHub
+              Like what you see? Check the code on GitHub
               <ArrowRight className="h-3.5 w-3.5" />
             </a>
           </div>
@@ -248,8 +248,8 @@ export function LoginPage() {
           {[
             { value: "9", label: "MCP Tools" },
             { value: "<2s", label: "p50 latency" },
-            { value: "204", label: "Tests passing" },
-            { value: "~$1/mês", label: "Custo demo" },
+            { value: "4", label: "M365 services" },
+            { value: "~$1/mo", label: "Self-hosted cost" },
           ].map(({ value, label }) => (
             <div key={label} className="bg-card px-4 py-5 text-center">
               <p className="font-display text-2xl font-semibold tracking-tight">
@@ -263,7 +263,7 @@ export function LoginPage() {
         </section>
 
         <section className="mb-20">
-          <SectionLabel>Três pilares</SectionLabel>
+          <SectionLabel>Three pillars</SectionLabel>
           <div className="grid sm:grid-cols-3 gap-4">
             {pillars.map(({ icon: Icon, title, description }) => (
               <article
@@ -285,20 +285,20 @@ export function LoginPage() {
         </section>
 
         <section className="mb-20">
-          <SectionLabel>Conectar em 30 segundos</SectionLabel>
+          <SectionLabel>Connect in 30 seconds</SectionLabel>
           <ol className="space-y-3.5">
-            <Step n={1} title="Login Microsoft 365 (read-only)">
-              OAuth 2.0 + PKCE com escopos read-only para Calendar, Mail, OneNote
-              e OneDrive. Tokens criptografados Fernet AES-256 + PBKDF2 480k iterações.
+            <Step n={1} title="Sign in with Microsoft 365 (read-only)">
+              OAuth 2.0 + PKCE with read-only scopes for Calendar, Mail, OneNote,
+              and OneDrive. Tokens encrypted with Fernet AES-256 + PBKDF2 480k iterations.
             </Step>
 
-            <Step n={2} title="Cole o snippet no claude_desktop_config.json">
+            <Step n={2} title="Paste the snippet in claude_desktop_config.json">
               <pre className="mt-3 rounded-xl border border-border bg-background p-4 overflow-x-auto text-[12px] font-mono leading-relaxed">
                 <code className="text-foreground/85">{configSnippet}</code>
               </pre>
             </Step>
 
-            <Step n={3} title="As 9 tools aparecem no Claude Desktop">
+            <Step n={3} title="All 9 tools appear in Claude Desktop">
               <code className="text-[11.5px] font-mono text-muted-foreground break-words">
                 get_calendar_events · search_emails · get_onenote_pages ·
                 search_files · web_search · semantic_search · save_memory ·
@@ -346,10 +346,10 @@ export function LoginPage() {
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
             <div>
               <p className="font-medium text-[13px] text-destructive">
-                Falha na autenticação
+                Authentication failed
               </p>
               <p className="text-[11px] text-destructive/80 mt-0.5">
-                Verifique sua conta Microsoft e tente novamente.
+                Check your Microsoft account and try again.
               </p>
             </div>
           </div>
@@ -357,7 +357,7 @@ export function LoginPage() {
 
         <footer className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-8 border-t border-border/60">
           <p className="text-[12px] text-muted-foreground">
-            Construído por{" "}
+            Built by{" "}
             <a
               href={PORTFOLIO_URL}
               className="font-medium text-foreground hover:text-brand transition-colors"
