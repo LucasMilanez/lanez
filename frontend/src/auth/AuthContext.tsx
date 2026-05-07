@@ -36,7 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = () => {
     const returnUrl = `${window.location.origin}/dashboard`;
-    window.location.href = `/auth/microsoft?return_url=${encodeURIComponent(returnUrl)}`;
+    // Em produção, redirecionar diretamente para o backend Fly.io
+    // para evitar problemas com o proxy do Vercel em redirects OAuth 302.
+    const apiBase = import.meta.env.VITE_API_BASE_URL
+      || (window.location.hostname === "lanez.vercel.app" ? "https://lanez-app.fly.dev" : "");
+    window.location.href = `${apiBase}/auth/microsoft?return_url=${encodeURIComponent(returnUrl)}`;
   };
 
   const logout = async () => {

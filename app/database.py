@@ -65,6 +65,8 @@ async def init_redis() -> aioredis.Redis:
     redis_client = aioredis.from_url(
         settings.REDIS_URL,
         decode_responses=True,
+        socket_connect_timeout=5,
+        socket_timeout=5,
     )
     return redis_client
 

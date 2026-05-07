@@ -298,13 +298,14 @@ async def auth_callback(
         response = RedirectResponse(
             url=state_data["return_url"], status_code=302
         )
+        _is_https = state_data["return_url"].startswith("https://")
         response.set_cookie(
             key=_COOKIE_NAME,
             value=internal_jwt,
             max_age=7 * 24 * 60 * 60,  # 7 dias
             httponly=True,
             samesite="lax",
-            secure=False,  # TODO Fase 6c (deploy): secure=True quando atrás de HTTPS
+            secure=_is_https,
             path="/",
         )
         return response
