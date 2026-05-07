@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -111,12 +112,12 @@ async def update_memory(
     )
 
 
-@router.delete("/{memory_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{memory_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
 async def delete_memory(
     memory_id: uuid.UUID,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> None:
+) -> Response:
     """Remove uma memória."""
     result = await db.execute(
         select(Memory).where(Memory.id == memory_id, Memory.user_id == user.id)
@@ -127,3 +128,4 @@ async def delete_memory(
 
     await db.delete(memory)
     await db.commit()
+    return Response(status_code=204)

@@ -20,13 +20,13 @@ interface Memory {
 }
 
 async function fetchMemories(): Promise<Memory[]> {
-  const res = await fetch("/api/memories", { credentials: "include" });
+  const res = await fetch("/memories", { credentials: "include" });
   if (!res.ok) throw new Error("Erro ao carregar memórias");
   return res.json();
 }
 
 async function createMemory(data: { content: string; tags: string[] }): Promise<Memory> {
-  const res = await fetch("/api/memories", {
+  const res = await fetch("/memories", {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -37,7 +37,7 @@ async function createMemory(data: { content: string; tags: string[] }): Promise<
 }
 
 async function updateMemory(id: string, data: { content?: string; tags?: string[] }): Promise<Memory> {
-  const res = await fetch(`/api/memories/${id}`, {
+  const res = await fetch(`/memories/${id}`, {
     method: "PATCH",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -48,7 +48,7 @@ async function updateMemory(id: string, data: { content?: string; tags?: string[
 }
 
 async function deleteMemory(id: string): Promise<void> {
-  const res = await fetch(`/api/memories/${id}`, {
+  const res = await fetch(`/memories/${id}`, {
     method: "DELETE",
     credentials: "include",
   });
