@@ -6,7 +6,6 @@ import {
   History,
   Settings,
   LogOut,
-  Sparkles,
   Menu,
   Brain,
 } from "lucide-react";
@@ -60,9 +59,12 @@ export function AppShell() {
       >
         <div className="px-5 pt-6 pb-5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-brand text-brand-foreground shadow-soft">
-              <Sparkles className="h-4 w-4" strokeWidth={2.25} />
-            </div>
+            <img
+              src="/favicon.svg"
+              alt=""
+              aria-hidden="true"
+              className="h-7 w-7"
+            />
             <div className="flex flex-col leading-none">
               <span className="font-display text-base font-semibold tracking-tight">
                 Lanez
