@@ -14,6 +14,12 @@ interface TokenUsageChartProps {
   data: { input: number; output: number; cache_read: number; cache_write: number };
 }
 
+function formatTokenValue(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
+  return String(value);
+}
+
 export function TokenUsageChart({ data }: TokenUsageChartProps) {
   const { resolvedTheme } = useTheme();
 
@@ -44,8 +50,24 @@ export function TokenUsageChart({ data }: TokenUsageChartProps) {
       <BarChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
         <XAxis dataKey="name" fontSize={12} />
-        <YAxis fontSize={12} />
-        <Tooltip />
+        <YAxis
+          fontSize={11}
+          tickFormatter={formatTokenValue}
+          label={{
+            value: "tokens",
+            angle: -90,
+            position: "insideLeft",
+            style: { fontSize: 11, fill: "hsl(215 16% 47%)" },
+          }}
+        />
+        <Tooltip
+          formatter={(value) => [Number(value).toLocaleString("pt-BR"), "tokens"]}
+          contentStyle={{
+            borderRadius: "0.5rem",
+            border: "1px solid hsl(214 22% 89%)",
+            fontSize: "12px",
+          }}
+        />
         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
           {chartData.map((entry) => (
             <Cell key={entry.name} fill={palette[entry.key]} />

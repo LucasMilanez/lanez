@@ -21,6 +21,12 @@ export interface StatusData {
     cache_read: number;
     cache_write: number;
   };
+  mcp_activity_30d: {
+    total_calls: number;
+    successful: number;
+    failed: number;
+    tools_used: Array<{ service: string; count: number }>;
+  };
   config: { briefing_history_window_days: number };
 }
 

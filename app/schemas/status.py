@@ -28,6 +28,13 @@ class TokenUsageBucket(BaseModel):
     cache_write: int
 
 
+class McpActivityBucket(BaseModel):
+    total_calls: int
+    successful: int
+    failed: int
+    tools_used: list[ServiceCount]
+
+
 class StatusConfig(BaseModel):
     briefing_history_window_days: int
     audit_history_window_days: int
@@ -44,4 +51,5 @@ class StatusResponse(BaseModel):
     briefings_count_30d: int
     recent_briefings: list[RecentBriefing]
     tokens_30d: TokenUsageBucket
+    mcp_activity_30d: McpActivityBucket
     config: StatusConfig
