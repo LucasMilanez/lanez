@@ -7,12 +7,14 @@ import { BriefingCard } from "@/components/BriefingCard";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
+import { useI18n } from "@/i18n/I18nContext";
 
 export function BriefingsListPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const pageSize = 20;
+  const { t } = useI18n();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -29,7 +31,7 @@ export function BriefingsListPage() {
   return (
     <div className="space-y-6">
       <Input
-        placeholder="Buscar por assunto..."
+        placeholder={t.briefingsPage.searchPlaceholder}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="max-w-md"
@@ -41,8 +43,8 @@ export function BriefingsListPage() {
 
       {data && data.items.length === 0 && (
         <EmptyState
-          title="Nenhum briefing encontrado"
-          description="Eles serão gerados automaticamente quando reuniões aparecerem no calendário."
+          title={t.briefingsPage.noBriefings}
+          description={t.briefingsPage.noBriefingsDesc}
           icon={<FileText className="h-10 w-10" />}
         />
       )}
@@ -61,7 +63,7 @@ export function BriefingsListPage() {
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
             >
-              Anterior
+              {t.auditPage.previous}
             </Button>
             <span className="text-sm text-muted-foreground">
               Página {page} de {totalPages}
@@ -71,7 +73,7 @@ export function BriefingsListPage() {
               disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
-              Próximo
+              {t.auditPage.next}
             </Button>
           </div>
         </>

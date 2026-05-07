@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/I18nContext";
 import type { AuditLogItem } from "@/hooks/useAuditLog";
 
 const EVENT_TYPES = [
@@ -58,6 +59,7 @@ export function AuditPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selected, setSelected] = useState<AuditLogItem | null>(null);
   const [activeTypes, setActiveTypes] = useState<string[]>([]);
+  const { t, locale } = useI18n();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -78,7 +80,7 @@ export function AuditPage() {
 
   function toggleType(type: string) {
     setActiveTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+      prev.includes(type) ? prev.filter((t2) => t2 !== type) : [...prev, type]
     );
     setPage(1);
   }
@@ -86,7 +88,7 @@ export function AuditPage() {
   return (
     <div className="space-y-6">
       <Input
-        placeholder="Buscar eventos..."
+        placeholder={t.auditPage.searchPlaceholder}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="max-w-md"
@@ -120,8 +122,8 @@ export function AuditPage() {
 
       {data && data.items.length === 0 && (
         <EmptyState
-          title="Nenhum evento encontrado"
-          description="Eventos de auditoria aparecerão aqui conforme o sistema for usado."
+          title={t.auditPage.noEvents}
+          description={t.auditPage.noEventsDesc}
           icon={<History className="h-10 w-10" />}
         />
       )}
@@ -131,11 +133,11 @@ export function AuditPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Quando</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Resumo</TableHead>
-                <TableHead className="text-right">Latência</TableHead>
-                <TableHead className="text-right">Status</TableHead>
+                <TableHead>{t.auditPage.when}</TableHead>
+                <TableHead>{t.auditPage.type}</TableHead>
+                <TableHead>{t.auditPage.summary}</TableHead>
+                <TableHead className="text-right">{t.auditPage.latency}</TableHead>
+                <TableHead className="text-right">{t.auditPage.status}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -146,7 +148,7 @@ export function AuditPage() {
                   onClick={() => setSelected(item)}
                 >
                   <TableCell className="font-mono text-xs">
-                    {new Date(item.created_at).toLocaleString("pt-BR")}
+                    {new Date(item.created_at).toLocaleString(locale === "pt" ? "pt-BR" : "en-US")}
                   </TableCell>
                   <TableCell>
                     <AuditEventBadge eventType={item.event_type} />
@@ -159,9 +161,9 @@ export function AuditPage() {
                   </TableCell>
                   <TableCell className="text-right text-xs">
                     {item.success ? (
-                      <span className="text-green-600 dark:text-green-400">ok</span>
+                      <span className="text-green-600 dark:text-green-400">{t.auditPage.ok}</span>
                     ) : (
-                      <span className="text-destructive">erro</span>
+                      <span className="text-destructive">{t.auditPage.errorLabel}</span>
                     )}
                   </TableCell>
                 </TableRow>
@@ -175,7 +177,7 @@ export function AuditPage() {
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
             >
-              Anterior
+              {t.auditPage.previous}
             </Button>
             <span className="text-sm text-muted-foreground">
               Página {page} de {totalPages}
@@ -185,7 +187,7 @@ export function AuditPage() {
               disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
-              Próximo
+              {t.auditPage.next}
             </Button>
           </div>
         </>

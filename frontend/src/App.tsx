@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 
 import { queryClient } from "@/lib/queryClient";
 import { ThemeProvider } from "@/theme/ThemeContext";
+import { I18nProvider } from "@/i18n/I18nContext";
 import { AuthProvider } from "@/auth/AuthContext";
 import { ProtectedRoute } from "@/auth/ProtectedRoute";
 import { LoginPage } from "@/pages/LoginPage";
@@ -28,29 +29,31 @@ function PageFallback() {
 export default function App() {
   return (
     <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AuthProvider>
-            <Suspense fallback={<PageFallback />}>
-              <Routes>
-                <Route path="/" element={<LoginPage />} />
-                <Route element={<ProtectedRoute />}>
-                  <Route element={<AppShell />}>
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/briefings" element={<BriefingsListPage />} />
-                    <Route path="/briefings/:eventId" element={<BriefingDetailPage />} />
-                    <Route path="/audit" element={<AuditPage />} />
-                    <Route path="/memories" element={<MemoriesPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
+      <I18nProvider>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AuthProvider>
+              <Suspense fallback={<PageFallback />}>
+                <Routes>
+                  <Route path="/" element={<LoginPage />} />
+                  <Route element={<ProtectedRoute />}>
+                    <Route element={<AppShell />}>
+                      <Route path="/dashboard" element={<DashboardPage />} />
+                      <Route path="/briefings" element={<BriefingsListPage />} />
+                      <Route path="/briefings/:eventId" element={<BriefingDetailPage />} />
+                      <Route path="/audit" element={<AuditPage />} />
+                      <Route path="/memories" element={<MemoriesPage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                    </Route>
                   </Route>
-                </Route>
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Suspense>
-            <Toaster />
-          </AuthProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Suspense>
+              <Toaster />
+            </AuthProvider>
+          </BrowserRouter>
+        </QueryClientProvider>
+      </I18nProvider>
     </ThemeProvider>
   );
 }

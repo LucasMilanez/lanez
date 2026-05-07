@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { useState } from "react";
+import { useI18n } from "@/i18n/I18nContext";
 
 export function SettingsPage() {
   const { data, isLoading, error, refetch } = useStatus();
@@ -17,6 +18,8 @@ export function SettingsPage() {
   const [mcpToken, setMcpToken] = useState<string | null>(null);
   const [loadingToken, setLoadingToken] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { t, locale } = useI18n();
+  const dateLocale = locale === "pt" ? ptBR : enUS;
 
   const handleRefreshToken = async () => {
     try {
@@ -59,9 +62,9 @@ export function SettingsPage() {
       await navigator.clipboard.writeText(config);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      toast.success("Configuração copiada!");
+      toast.success(t.settingsPage.configCopied);
     } catch {
-      toast.error("Falha ao copiar. Selecione manualmente.");
+      toast.error(t.settingsPage.copyFailed);
     }
   };
 
@@ -79,18 +82,18 @@ export function SettingsPage() {
         <Card className="shadow-soft">
           <CardHeader className="pb-2">
             <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Janela histórica de briefings
+              {t.settingsPage.briefingWindow}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="font-display text-3xl font-semibold tabular-nums tracking-tight">
               {data.config.briefing_history_window_days}
               <span className="ml-1 text-base font-medium text-muted-foreground">
-                dias
+                {t.settingsPage.days}
               </span>
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              Configurado via env no servidor
+              {t.settingsPage.configuredViaEnv}
             </p>
           </CardContent>
         </Card>
@@ -98,7 +101,7 @@ export function SettingsPage() {
         <Card className="shadow-soft">
           <CardHeader className="pb-2">
             <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Email autenticado
+              {t.settingsPage.authenticatedEmail}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -111,16 +114,16 @@ export function SettingsPage() {
         <Card className="shadow-soft">
           <CardHeader className="pb-2">
             <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Última sincronização
+              {t.settingsPage.lastSync}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="font-display text-base font-semibold tabular-nums">
               {data.last_sync_at
                 ? format(new Date(data.last_sync_at), "dd/MM/yyyy 'às' HH:mm", {
-                    locale: ptBR,
+                    locale: dateLocale,
                   })
-                : "Nunca"}
+                : t.settingsPage.never}
             </p>
           </CardContent>
         </Card>
@@ -128,18 +131,18 @@ export function SettingsPage() {
         <Card className="shadow-soft">
           <CardHeader className="pb-2">
             <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Token Microsoft
+              {t.settingsPage.microsoftToken}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground tabular-nums">
-              Expira em{" "}
+              {t.settingsPage.expiresAt}{" "}
               {format(new Date(data.token_expires_at), "dd/MM/yyyy 'às' HH:mm", {
-                locale: ptBR,
+                locale: dateLocale,
               })}
             </p>
             <Button variant="outline" size="sm" onClick={() => void handleRefreshToken()}>
-              Renovar token agora
+              {t.settingsPage.renewNow}
             </Button>
           </CardContent>
         </Card>
@@ -150,13 +153,14 @@ export function SettingsPage() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <Key className="h-4 w-4" />
-            Conectar cliente MCP (Claude Desktop, Cursor, etc.)
+            {t.settingsPage.connectMcpClient}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Gere a configuração para conectar um cliente MCP ao Lanez.
-            O token gerado é válido por 7 dias.
+            {t.settingsPage.mcpConfigDesc}
+            {" "}
+            {t.settingsPage.tokenValid7Days}
           </p>
 
           {!mcpToken ? (
@@ -167,7 +171,7 @@ export function SettingsPage() {
               disabled={loadingToken}
             >
               <Key className="h-3.5 w-3.5 mr-1.5" />
-              {loadingToken ? "Gerando..." : "Gerar configuração MCP"}
+              {loadingToken ? "Gerando..." : t.settingsPage.generateMcpConfig}
             </Button>
           ) : (
             <div className="space-y-4">
@@ -193,8 +197,8 @@ export function SettingsPage() {
                     size="icon"
                     className="absolute top-2 right-2 h-6 w-6"
                     onClick={() => void handleCopyConfig()}
-                    title={copied ? "Copiado!" : "Copiar configuração"}
-                    aria-label={copied ? "Configuração copiada" : "Copiar configuração"}
+                    title={copied ? t.settingsPage.configCopied : t.settingsPage.copyConfig}
+                    aria-label={copied ? t.settingsPage.configCopied : t.settingsPage.copyConfig}
                   >
                     {copied ? (
                       <Check className="h-3.5 w-3.5 text-green-500" />
@@ -232,7 +236,7 @@ export function SettingsPage() {
                   ) : (
                     <Copy className="h-3.5 w-3.5 mr-1.5" />
                   )}
-                  {copied ? "Copiado!" : "Copiar config"}
+                  {copied ? t.settingsPage.configCopied : t.settingsPage.copyConfig}
                 </Button>
                 <Button
                   variant="ghost"

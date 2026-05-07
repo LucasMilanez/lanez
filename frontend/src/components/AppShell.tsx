@@ -11,54 +11,33 @@ import {
   Brain,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthContext";
+import { useI18n } from "@/i18n/I18nContext";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { MicButton } from "@/components/voice/MicButton";
 import { ThemeToggle } from "@/theme/ThemeToggle";
+import { LocaleToggle } from "@/i18n/LocaleToggle";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/briefings", label: "Briefings", icon: FileText },
-  { to: "/memories", label: "Memórias", icon: Brain },
-  { to: "/audit", label: "Auditoria", icon: History },
-  { to: "/settings", label: "Configurações", icon: Settings },
+const navKeys = [
+  { to: "/dashboard", key: "dashboard" as const, icon: LayoutDashboard },
+  { to: "/briefings", key: "briefings" as const, icon: FileText },
+  { to: "/memories", key: "memories" as const, icon: Brain },
+  { to: "/audit", key: "audit" as const, icon: History },
+  { to: "/settings", key: "settings" as const, icon: Settings },
 ];
 
-const pageTitles: Record<string, { title: string; description: string }> = {
-  "/dashboard": {
-    title: "Dashboard",
-    description: "Visão geral das integrações e atividade recente",
-  },
-  "/briefings": {
-    title: "Briefings",
-    description: "Histórico de preparações automáticas de reunião",
-  },
-  "/memories": {
-    title: "Memórias",
-    description: "Contexto persistente guardado para sessões futuras",
-  },
-  "/audit": {
-    title: "Auditoria",
-    description: "Trilha imutável de acessos aos seus dados",
-  },
-  "/settings": {
-    title: "Configurações",
-    description: "Preferências da conta e da aplicação",
-  },
-};
-
-function getPageMeta(pathname: string) {
-  const match = Object.keys(pageTitles).find((key) => pathname.startsWith(key));
-  return match ? pageTitles[match] : { title: "", description: "" };
-}
 
 export function AppShell() {
   const { user, logout } = useAuth();
+  const { t } = useI18n();
   const location = useLocation();
-  const { title, description } = getPageMeta(location.pathname);
   const userInitial = (user?.email?.[0] ?? "?").toUpperCase();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const pageKey = navKeys.find((item) => location.pathname.startsWith(item.to))?.key;
+  const title = pageKey ? t.pages[pageKey].title : "";
+  const description = pageKey ? t.pages[pageKey].description : "";
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -99,9 +78,9 @@ export function AppShell() {
 
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Navegação
+            {t.nav.navigation}
           </p>
-          {navItems.map((item) => {
+          {navKeys.map((item) => {
             const Icon = item.icon;
             const active = location.pathname.startsWith(item.to);
             return (
@@ -127,7 +106,7 @@ export function AppShell() {
                       : "text-muted-foreground group-hover:text-foreground",
                   )}
                 />
-                {item.label}
+                {t.nav[item.key]}
               </Link>
             );
           })}
@@ -144,7 +123,7 @@ export function AppShell() {
               <p className="truncate text-xs font-medium text-foreground">
                 {user?.email ?? "—"}
               </p>
-              <p className="text-[10px] text-muted-foreground">Conectado</p>
+              <p className="text-[10px] text-muted-foreground">{t.common.connected}</p>
             </div>
           </div>
           <Button
@@ -154,7 +133,7 @@ export function AppShell() {
             onClick={() => void logout()}
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Sair
+            {t.nav.logout}
           </Button>
         </div>
       </aside>
@@ -168,7 +147,7 @@ export function AppShell() {
             size="icon"
             className="md:hidden shrink-0"
             onClick={() => setMobileOpen(true)}
-            aria-label="Abrir menu de navegação"
+            aria-label={t.nav.openMenu}
           >
             <Menu className="h-5 w-5" />
           </Button>
@@ -186,6 +165,7 @@ export function AppShell() {
           <div className="flex items-center gap-2">
             <MicButton />
             <Separator orientation="vertical" className="h-5" />
+            <LocaleToggle />
             <ThemeToggle />
           </div>
         </header>

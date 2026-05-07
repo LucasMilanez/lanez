@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
 import { Brain, Plus, Pencil, Trash2, Check, X, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ErrorState } from "@/components/ErrorState";
+import { useI18n, interpolate } from "@/i18n/I18nContext";
 
 interface Memory {
   id: string;
@@ -63,6 +64,7 @@ function TagsInput({
   onChange: (tags: string[]) => void;
 }) {
   const [input, setInput] = useState("");
+  const { t } = useI18n();
 
   function addTag() {
     const tag = input.trim();
@@ -76,7 +78,7 @@ function TagsInput({
     <div className="space-y-2">
       <div className="flex gap-2">
         <Input
-          placeholder="Adicionar tag..."
+          placeholder={t.memoriesPage.addTag}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -98,7 +100,7 @@ function TagsInput({
               key={tag}
               variant="secondary"
               className="gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors"
-              onClick={() => onChange(value.filter((t) => t !== tag))}
+              onClick={() => onChange(value.filter((t2) => t2 !== tag))}
             >
               {tag}
               <X className="h-3 w-3" />
@@ -115,25 +117,26 @@ function MemoryRow({ memory, onSaved }: { memory: Memory; onSaved: () => void })
   const [content, setContent] = useState(memory.content);
   const [tags, setTags] = useState(memory.tags);
   const qc = useQueryClient();
+  const { t, locale } = useI18n();
 
   const update = useMutation({
     mutationFn: () => updateMemory(memory.id, { content, tags }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["memories"] });
       setEditing(false);
-      toast.success("Memória actualizada");
+      toast.success(t.memoriesPage.updated);
       onSaved();
     },
-    onError: () => toast.error("Erro ao actualizar"),
+    onError: () => toast.error(t.memoriesPage.errorUpdate),
   });
 
   const remove = useMutation({
     mutationFn: () => deleteMemory(memory.id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["memories"] });
-      toast.success("Memória eliminada");
+      toast.success(t.memoriesPage.deleted);
     },
-    onError: () => toast.error("Erro ao eliminar"),
+    onError: () => toast.error(t.memoriesPage.errorDelete),
   });
 
   function handleCancel() {
@@ -156,7 +159,7 @@ function MemoryRow({ memory, onSaved }: { memory: Memory; onSaved: () => void })
         <div className="flex gap-2 justify-end">
           <Button variant="ghost" size="sm" onClick={handleCancel}>
             <X className="h-4 w-4 mr-1.5" />
-            Cancelar
+            {t.common.cancel}
           </Button>
           <Button
             size="sm"
@@ -164,7 +167,7 @@ function MemoryRow({ memory, onSaved }: { memory: Memory; onSaved: () => void })
             disabled={!content.trim() || update.isPending}
           >
             <Check className="h-4 w-4 mr-1.5" />
-            Guardar
+            {t.common.save}
           </Button>
         </div>
       </div>
@@ -184,7 +187,7 @@ function MemoryRow({ memory, onSaved }: { memory: Memory; onSaved: () => void })
           <span className="text-[11px] text-muted-foreground">
             {formatDistanceToNow(new Date(memory.created_at), {
               addSuffix: true,
-              locale: ptBR,
+              locale: locale === "pt" ? ptBR : enUS,
             })}
           </span>
         </div>
@@ -195,7 +198,7 @@ function MemoryRow({ memory, onSaved }: { memory: Memory; onSaved: () => void })
           size="icon"
           className="h-8 w-8"
           onClick={() => setEditing(true)}
-          aria-label="Editar memória"
+          aria-label={t.common.edit}
         >
           <Pencil className="h-3.5 w-3.5" />
         </Button>
@@ -205,7 +208,7 @@ function MemoryRow({ memory, onSaved }: { memory: Memory; onSaved: () => void })
           className="h-8 w-8 hover:text-destructive hover:bg-destructive/10"
           onClick={() => remove.mutate()}
           disabled={remove.isPending}
-          aria-label="Eliminar memória"
+          aria-label={t.common.delete}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
@@ -218,6 +221,7 @@ function NewMemoryForm({ onDone }: { onDone: () => void }) {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const qc = useQueryClient();
+  const { t } = useI18n();
 
   const create = useMutation({
     mutationFn: () => createMemory({ content, tags }),
@@ -225,16 +229,16 @@ function NewMemoryForm({ onDone }: { onDone: () => void }) {
       qc.invalidateQueries({ queryKey: ["memories"] });
       setContent("");
       setTags([]);
-      toast.success("Memória guardada");
+      toast.success(t.memoriesPage.saved);
       onDone();
     },
-    onError: () => toast.error("Erro ao guardar"),
+    onError: () => toast.error(t.memoriesPage.errorSave),
   });
 
   return (
     <div className="rounded-lg border border-brand/40 bg-card p-4 space-y-3">
       <Textarea
-        placeholder="Escreve a memória..."
+        placeholder={t.memoriesPage.writeMemory}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={3}
@@ -245,7 +249,7 @@ function NewMemoryForm({ onDone }: { onDone: () => void }) {
       <div className="flex gap-2 justify-end">
         <Button variant="ghost" size="sm" onClick={onDone}>
           <X className="h-4 w-4 mr-1.5" />
-          Cancelar
+          {t.common.cancel}
         </Button>
         <Button
           size="sm"
@@ -253,7 +257,7 @@ function NewMemoryForm({ onDone }: { onDone: () => void }) {
           disabled={!content.trim() || create.isPending}
         >
           <Check className="h-4 w-4 mr-1.5" />
-          Guardar
+          {t.common.save}
         </Button>
       </div>
     </div>
@@ -262,6 +266,7 @@ function NewMemoryForm({ onDone }: { onDone: () => void }) {
 
 export function MemoriesPage() {
   const [adding, setAdding] = useState(false);
+  const { t } = useI18n();
   const { data, isLoading, error, refetch } = useQuery<Memory[]>({
     queryKey: ["memories"],
     queryFn: fetchMemories,
@@ -286,12 +291,12 @@ export function MemoriesPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Brain className="h-4 w-4" />
-          <span className="text-sm">{data?.length ?? 0} memórias guardadas</span>
+          <span className="text-sm">{interpolate(t.memoriesPage.memoriesCount, { count: data?.length ?? 0 })}</span>
         </div>
         {!adding && (
           <Button size="sm" onClick={() => setAdding(true)}>
             <Plus className="h-4 w-4 mr-1.5" />
-            Nova memória
+            {t.memoriesPage.newMemory}
           </Button>
         )}
       </div>
@@ -303,11 +308,11 @@ export function MemoriesPage() {
           <CardContent className="flex flex-col items-center justify-center py-12 gap-3 text-center">
             <Brain className="h-8 w-8 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">
-              Ainda não tens memórias guardadas.
+              {t.memoriesPage.noMemories}
             </p>
             <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
               <Plus className="h-4 w-4 mr-1.5" />
-              Criar primeira memória
+              {t.memoriesPage.createFirst}
             </Button>
           </CardContent>
         </Card>
@@ -318,7 +323,7 @@ export function MemoriesPage() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
               <Brain className="h-4 w-4 text-muted-foreground" />
-              Todas as memórias
+              {t.memoriesPage.allMemories}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 space-y-2">
