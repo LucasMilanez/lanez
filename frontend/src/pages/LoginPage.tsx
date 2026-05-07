@@ -79,7 +79,7 @@ const configSnippet = `{
 }`;
 
 export function LoginPage() {
-  const { login, user, loading } = useAuth();
+  const { login, user } = useAuth();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [searchParams] = useSearchParams();
   const errorParam = searchParams.get("error");
@@ -95,14 +95,6 @@ export function LoginPage() {
       .getElementById("demo-video")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-5 w-5 animate-spin text-brand" />
-      </div>
-    );
-  }
 
   if (user) return <Navigate to="/dashboard" replace />;
 
