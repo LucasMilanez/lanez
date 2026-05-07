@@ -13,7 +13,7 @@ export function StatusCard({ title, value, description, icon }: StatusCardProps)
 
   return (
     <Card className="shadow-soft">
-      <CardContent className="p-5">
+      <CardContent>
         <div className="flex items-start justify-between gap-3">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {title}

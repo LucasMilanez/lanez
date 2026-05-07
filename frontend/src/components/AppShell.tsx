@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -6,6 +7,7 @@ import {
   Settings,
   LogOut,
   Sparkles,
+  Menu,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -50,10 +52,27 @@ export function AppShell() {
   const location = useLocation();
   const { title, description } = getPageMeta(location.pathname);
   const userInitial = (user?.email?.[0] ?? "?").toUpperCase();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <aside className="w-64 shrink-0 bg-card border-r border-border flex flex-col">
+    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col bg-card border-r border-border transition-transform duration-200 ease-in-out",
+          "md:relative md:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        )}
+      >
         <div className="px-5 pt-6 pb-5">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-brand text-brand-foreground shadow-soft">
@@ -83,6 +102,7 @@ export function AppShell() {
               <Link
                 key={item.to}
                 to={item.to}
+                onClick={() => setMobileOpen(false)}
                 className={cn(
                   "group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   active
@@ -133,9 +153,21 @@ export function AppShell() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-10 h-16 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-8 flex items-center justify-between gap-4">
-          <div className="min-w-0">
+      {/* Main area */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <header className="sticky top-0 z-30 h-16 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-8 flex items-center justify-between gap-4">
+          {/* Hamburger — mobile only */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden shrink-0"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Abrir menu de navegação"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+
+          <div className="min-w-0 flex-1">
             <h1 className="font-display text-base font-semibold tracking-tight text-foreground">
               {title}
             </h1>
@@ -151,10 +183,12 @@ export function AppShell() {
             <ThemeToggle />
           </div>
         </header>
-        <div className="p-8 max-w-6xl mx-auto">
-          <Outlet />
+        <div className="flex-1 overflow-auto">
+          <div className="p-4 md:p-8 max-w-6xl mx-auto">
+            <Outlet />
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

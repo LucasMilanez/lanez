@@ -20,11 +20,10 @@ export function TranscriptionResult({ initialText, onClose }: TranscriptionResul
       { content: text, tags: ["voz"] },
       {
         onSuccess: () => {
-          toast.success("Memória salva");
-          onClose();
+          toast.success("Memória guardada. Podes agora pesquisar nos briefings.");
         },
         onError: (err) => {
-          toast.error(`Falha ao salvar: ${err.detail}`);
+          toast.error(`Falha ao guardar: ${err.detail}`);
         },
       }
     );

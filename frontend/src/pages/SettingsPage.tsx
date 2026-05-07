@@ -1,10 +1,9 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Info, Copy, Key } from "lucide-react";
+import { Copy, Key, Check } from "lucide-react";
 import { useStatus } from "@/hooks/useStatus";
 import { useAuth } from "@/auth/AuthContext";
 import { api } from "@/lib/api";
@@ -17,6 +16,7 @@ export function SettingsPage() {
   const { user } = useAuth();
   const [mcpToken, setMcpToken] = useState<string | null>(null);
   const [loadingToken, setLoadingToken] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleRefreshToken = async () => {
     try {
@@ -57,6 +57,8 @@ export function SettingsPage() {
 }`;
     try {
       await navigator.clipboard.writeText(config);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
       toast.success("Configuração copiada!");
     } catch {
       toast.error("Falha ao copiar. Selecione manualmente.");
@@ -73,13 +75,6 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
-          Configurações somente leitura nesta versão.
-        </AlertDescription>
-      </Alert>
-
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="shadow-soft">
           <CardHeader className="pb-2">
@@ -198,9 +193,14 @@ export function SettingsPage() {
                     size="icon"
                     className="absolute top-2 right-2 h-6 w-6"
                     onClick={() => void handleCopyConfig()}
-                    title="Copiar configuração"
+                    title={copied ? "Copiado!" : "Copiar configuração"}
+                    aria-label={copied ? "Configuração copiada" : "Copiar configuração"}
                   >
-                    <Copy className="h-3.5 w-3.5" />
+                    {copied ? (
+                      <Check className="h-3.5 w-3.5 text-green-500" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -227,8 +227,12 @@ export function SettingsPage() {
                   size="sm"
                   onClick={() => void handleCopyConfig()}
                 >
-                  <Copy className="h-3.5 w-3.5 mr-1.5" />
-                  Copiar config
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5 mr-1.5 text-green-500" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  {copied ? "Copiado!" : "Copiar config"}
                 </Button>
                 <Button
                   variant="ghost"

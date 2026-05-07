@@ -7,7 +7,7 @@ vi.mock("@/hooks/useSpeechSynthesis", () => ({
 }));
 
 describe("BriefingTTSButton", () => {
-  it("renders null when speech synthesis is not supported", async () => {
+  it("renders a disabled button with tooltip when TTS is not supported", async () => {
     const { useSpeechSynthesis } = await import("@/hooks/useSpeechSynthesis");
     vi.mocked(useSpeechSynthesis).mockReturnValue({
       state: "idle",
@@ -18,8 +18,10 @@ describe("BriefingTTSButton", () => {
       supported: false,
     });
 
-    const { container } = render(<BriefingTTSButton content="test content" />);
-    expect(container.innerHTML).toBe("");
+    render(<BriefingTTSButton content="test content" />);
+    const btn = screen.getByRole("button", { name: /ouvir resumo/i });
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveAttribute("title");
   });
 
   it("shows Pausar and Parar buttons when speaking", async () => {

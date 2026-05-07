@@ -16,6 +16,7 @@ import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { useAuditLog } from "@/hooks/useAuditLog";
+import { cn } from "@/lib/utils";
 import type { AuditLogItem } from "@/hooks/useAuditLog";
 
 const EVENT_TYPES = [
@@ -99,11 +100,13 @@ export function AuditPage() {
               key={type}
               type="button"
               onClick={() => toggleType(type)}
-              className={
+              aria-pressed={active}
+              className={cn(
+                "rounded-md transition-all",
                 active
-                  ? "rounded-md ring-2 ring-brand ring-offset-2 ring-offset-background transition-all"
-                  : "rounded-md opacity-60 hover:opacity-100 transition-opacity"
-              }
+                  ? "ring-2 ring-brand ring-offset-2 ring-offset-background"
+                  : "opacity-60 hover:opacity-100",
+              )}
             >
               <AuditEventBadge eventType={type} />
             </button>

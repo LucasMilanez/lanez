@@ -9,6 +9,7 @@ import {
   Database,
   BarChart3,
   Calendar,
+  ChevronRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,10 +20,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useStatus } from "@/hooks/useStatus";
 import { StatusCard } from "@/components/StatusCard";
 import { TokenUsageChart } from "@/components/TokenUsageChart";
-import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { ErrorState } from "@/components/ErrorState";
 
 export function DashboardPage() {
@@ -30,8 +31,33 @@ export function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <LoadingSkeleton count={7} className="h-32" />
+      <div className="space-y-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-lg border shadow-soft p-5 space-y-3">
+              <div className="flex items-start justify-between">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-7 w-7 rounded-md" />
+              </div>
+              <Skeleton className="h-8 w-16" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          ))}
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="rounded-lg border shadow-soft p-5 space-y-3">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-[200px] w-full" />
+            </div>
+          ))}
+        </div>
+        <div className="rounded-lg border shadow-soft p-5 space-y-3">
+          <Skeleton className="h-4 w-36" />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full rounded-md" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -142,9 +168,9 @@ export function DashboardPage() {
                 <li key={b.event_id}>
                   <Link
                     to={`/briefings/${b.event_id}`}
-                    className="flex items-center justify-between gap-4 rounded-md px-3 py-2.5 transition-colors hover:bg-accent/60"
+                    className="flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-accent/60 group"
                   >
-                    <span className="font-medium truncate">
+                    <span className="font-medium truncate flex-1">
                       {b.event_subject}
                     </span>
                     <span className="text-xs text-muted-foreground tabular-nums shrink-0">
@@ -152,6 +178,7 @@ export function DashboardPage() {
                         locale: ptBR,
                       })}
                     </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
                   </Link>
                 </li>
               ))}

@@ -65,4 +65,17 @@ describe("ProtectedRoute", () => {
       expect(screen.getByText("Dashboard Content")).toBeInTheDocument();
     });
   });
+
+  it("shows a spinner while loading, not a blank screen", async () => {
+    vi.mocked(global.fetch).mockImplementation(
+      () => new Promise(() => {}), // never resolves — keeps loading: true
+    );
+
+    const { container } = render(wrapper("/dashboard", null));
+
+    // Must have visible content (not just an empty/invisible div)
+    expect(container.firstChild).not.toBeEmptyDOMElement();
+    // Spinner element uses animate-spin
+    expect(container.querySelector(".animate-spin")).toBeInTheDocument();
+  });
 });

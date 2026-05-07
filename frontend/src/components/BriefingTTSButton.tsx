@@ -10,7 +10,19 @@ interface BriefingTTSButtonProps {
 export function BriefingTTSButton({ content }: BriefingTTSButtonProps) {
   const tts = useSpeechSynthesis();
 
-  if (!tts.supported) return null;
+  if (!tts.supported)
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        disabled
+        title="Síntese de voz não disponível neste navegador"
+        aria-label="Ouvir resumo (não disponível neste navegador)"
+      >
+        <Play className="h-4 w-4 mr-2" />
+        Ouvir resumo
+      </Button>
+    );
 
   if (tts.state === "speaking") {
     return (
