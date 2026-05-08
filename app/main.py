@@ -17,7 +17,7 @@ from slowapi.errors import RateLimitExceeded
 from app.config import settings
 from app.csrf import CSRFMiddleware
 from app.database import AsyncSessionLocal, close_redis, engine, init_redis
-from app.models import Base  # importa Base + todos os modelos (side-effect)
+from app.models import Base  # noqa: F401 — side-effect import registers all models
 from app.rate_limit import limiter
 from app.routers import auth, audit, briefings, graph, health, mcp, memories, status, voice, webhooks
 from app.services.embeddings import get_model

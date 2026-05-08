@@ -435,7 +435,8 @@ def test_property_error_unknown_method_http_200(method) -> None:
     tool_name=text(min_size=1, max_size=30).filter(
         lambda s: s not in ["get_calendar_events", "search_emails", "get_onenote_pages",
                             "search_files", "web_search", "semantic_search",
-                            "save_memory", "recall_memory", "get_briefing"]
+                            "save_memory", "recall_memory", "get_briefing",
+                            "read_file_by_url"]
     )
 )
 @hyp_settings(max_examples=50, deadline=None)

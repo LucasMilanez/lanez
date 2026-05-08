@@ -1,6 +1,6 @@
 # Lanez
 
-[![CI](https://github.com/LucasMilanez/lanez/actions/workflows/ci.yml/badge.svg)](https://github.com/LucasMilanez/lanez/actions/workflows/ci.yml)
+[![CI](https://github.com/LucasMilanez/Lanez/actions/workflows/ci.yml/badge.svg)](https://github.com/LucasMilanez/Lanez/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Spec 2025-06-18](https://img.shields.io/badge/MCP-2025--06--18-5EEAD4.svg)](https://modelcontextprotocol.io/)
@@ -9,7 +9,7 @@
 
 **An open-source alternative for users who prefer self-hosting their AI–Microsoft 365 bridge inside their own MCP client (Claude Desktop, Cursor, etc.) instead of relying on a vendor-managed assistant.**
 
-Live demo: [lanez.vercel.app](https://lanez.vercel.app) · Issues: [GitHub](https://github.com/LucasMilanez/lanez/issues) · Security: [SECURITY.md](SECURITY.md)
+Live demo: [lanez.vercel.app](https://lanez.vercel.app) · Issues: [GitHub](https://github.com/LucasMilanez/Lanez/issues) · Security: [SECURITY.md](SECURITY.md)
 
 ---
 

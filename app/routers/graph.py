@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db, get_redis
-from app.dependencies import get_current_user as _get_current_user
+from app.dependencies import get_current_user
 from app.schemas.graph import GraphDataResponse, ServiceType
 from app.services.graph import GraphService
 
@@ -31,7 +31,7 @@ async def get_graph_service() -> AsyncGenerator[GraphService, None]:
 
 @router.get("/me/events", response_model=GraphDataResponse)
 async def get_events(
-    current_user=Depends(_get_current_user),
+    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     redis: aioredis.Redis = Depends(get_redis),
     graph_service: GraphService = Depends(get_graph_service),
@@ -44,7 +44,7 @@ async def get_events(
 
 @router.get("/me/messages", response_model=GraphDataResponse)
 async def get_messages(
-    current_user=Depends(_get_current_user),
+    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     redis: aioredis.Redis = Depends(get_redis),
     graph_service: GraphService = Depends(get_graph_service),
@@ -57,7 +57,7 @@ async def get_messages(
 
 @router.get("/me/onenote/pages", response_model=GraphDataResponse)
 async def get_onenote_pages(
-    current_user=Depends(_get_current_user),
+    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     redis: aioredis.Redis = Depends(get_redis),
     graph_service: GraphService = Depends(get_graph_service),
@@ -70,7 +70,7 @@ async def get_onenote_pages(
 
 @router.get("/me/drive/root/children", response_model=GraphDataResponse)
 async def get_onedrive_files(
-    current_user=Depends(_get_current_user),
+    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     redis: aioredis.Redis = Depends(get_redis),
     graph_service: GraphService = Depends(get_graph_service),

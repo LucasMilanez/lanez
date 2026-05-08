@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import AsyncSessionLocal, get_db, get_redis
 from app.models.user import User
 from app.models.webhook import WebhookSubscription
-from app.dependencies import get_current_user as _get_current_user
+from app.dependencies import get_current_user
 from app.schemas.graph import ServiceType, WebhookNotification, WebhookSubscriptionResponse
 from app.services.briefing import generate_briefing
 from app.services.cache import CacheService
@@ -109,6 +109,18 @@ async def receive_graph_notification(
     cache_service: CacheService = Depends(get_cache_service),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
+    """Receives Microsoft Graph webhook notifications.
+
+    Two modes:
+    1. Validation: Microsoft sends GET with ?validationToken=... during
+       subscription creation. We echo the token back as plain text (200).
+    2. Notification: Microsoft POSTs a JSON body with change notifications.
+       Each notification is validated against WEBHOOK_CLIENT_STATE, then
+       dispatched to background tasks for re-embedding and briefing generation.
+
+    This endpoint is public (no auth) — validation relies on the clientState
+    secret shared during subscription creation.
+    """
     if validation_token is not None:
         return PlainTextResponse(validation_token, status_code=200)
 
@@ -152,7 +164,7 @@ async def receive_graph_notification(
 
 @router.get("/subscriptions", response_model=list[WebhookSubscriptionResponse])
 async def list_subscriptions(
-    current_user=Depends(_get_current_user),
+    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[WebhookSubscriptionResponse]:
     """Retorna subscrições ativas (não expiradas) do usuário autenticado."""

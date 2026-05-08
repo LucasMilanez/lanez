@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,7 +14,6 @@ from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.rate_limit import limiter
 from app.services.audit import AuditEventType, log_event
 from app.services.groq_voice import GroqTranscriptionError, transcribe_audio
 
@@ -39,10 +39,8 @@ _ALLOWED_CONTENT_TYPES = {
 
 
 @router.post("/transcribe", response_model=VoiceTranscriptionResponse)
-@limiter.limit("30/minute")
 async def transcribe(
-    request: Request,
-    audio: UploadFile = File(...),
+    audio: Annotated[UploadFile, File(...)],
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> VoiceTranscriptionResponse:

@@ -1,4 +1,8 @@
+import logging
+
 from pydantic_settings import BaseSettings
+
+_logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -68,3 +72,11 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Warn if FERNET_SALT is still the default — acceptable for existing deploys
+# but new installations should generate a unique salt.
+if settings.FERNET_SALT == "lanez-token-encryption-salt":
+    _logger.warning(
+        "FERNET_SALT is using the default value. For new deployments, generate "
+        "a unique salt with: python -c \"import os,base64;print(base64.b64encode(os.urandom(16)).decode())\""
+    )

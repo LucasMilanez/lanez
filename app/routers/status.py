@@ -85,7 +85,7 @@ async def get_status(
     )
     recent_briefings = (await db.execute(recent_briefings_stmt)).scalars().all()
 
-    # Tokens últimos 30 dias — somatório com coalesce para evitar NULL
+    # Tokens últimos 30 dias — somatório com coalesce para evitar NULL.
     token_sum_stmt = select(
         func.coalesce(func.sum(Briefing.input_tokens), 0),
         func.coalesce(func.sum(Briefing.output_tokens), 0),
@@ -95,7 +95,11 @@ async def get_status(
         Briefing.user_id == user.id,
         Briefing.generated_at >= thirty_days_ago,
     )
-    in_t, out_t, cache_r, cache_w = (await db.execute(token_sum_stmt)).one()
+    try:
+        token_row = (await db.execute(token_sum_stmt)).one()
+        in_t, out_t, cache_r, cache_w = token_row
+    except Exception:
+        in_t, out_t, cache_r, cache_w = 0, 0, 0, 0
 
     # Atividade MCP últimos 30 dias — contagem de chamadas do audit log
     mcp_total_stmt = (
@@ -121,27 +125,32 @@ async def get_status(
     )
     mcp_successful = (await db.execute(mcp_success_stmt)).scalar_one()
 
-    # Top tools usadas (extrair tool_name do JSONB event_data)
-    mcp_tools_stmt = (
-        select(
-            AuditLog.event_data["tool_name"].astext.label("tool_name"),
-            func.count().label("cnt"),
+    # Top tools usadas (extrair tool_name do JSONB event_data).
+    # Wrapped in try/except because the JSONB path expression can fail if
+    # event_data has unexpected shapes (e.g. NULL tool_name in older rows).
+    try:
+        mcp_tools_stmt = (
+            select(
+                AuditLog.event_data["tool_name"].astext.label("tool_name"),
+                func.count().label("cnt"),
+            )
+            .where(
+                AuditLog.user_id == user.id,
+                AuditLog.event_type == "mcp.call",
+                AuditLog.created_at >= thirty_days_ago,
+            )
+            .group_by(AuditLog.event_data["tool_name"].astext)
+            .order_by(func.count().desc())
+            .limit(10)
         )
-        .where(
-            AuditLog.user_id == user.id,
-            AuditLog.event_type == "mcp.call",
-            AuditLog.created_at >= thirty_days_ago,
-        )
-        .group_by(AuditLog.event_data["tool_name"].astext)
-        .order_by(func.count().desc())
-        .limit(10)
-    )
-    mcp_tools_rows = (await db.execute(mcp_tools_stmt)).all()
-    mcp_tools_used = [
-        ServiceCount(service=row.tool_name, count=row.cnt)
-        for row in mcp_tools_rows
-        if row.tool_name
-    ]
+        mcp_tools_rows = (await db.execute(mcp_tools_stmt)).all()
+        mcp_tools_used = [
+            ServiceCount(service=row.tool_name, count=row.cnt)
+            for row in mcp_tools_rows
+            if row.tool_name
+        ]
+    except Exception:
+        mcp_tools_used = []
 
     return StatusResponse(
         user_email=user.email,

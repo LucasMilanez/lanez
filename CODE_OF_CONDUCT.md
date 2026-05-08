@@ -32,7 +32,7 @@ Examples of unacceptable behavior:
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the maintainer via a [private security advisory](https://github.com/LucasMilanez/lanez/security/advisories/new)
+reported to the maintainer via a [private security advisory](https://github.com/LucasMilanez/Lanez/security/advisories/new)
 or by emailing `conduct@lanez.pt`. All complaints will be reviewed and
 investigated promptly and fairly.
 
