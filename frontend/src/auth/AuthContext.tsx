@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, ApiError } from "@/lib/api";
+import { isDemoMode } from "@/demo/demoRouter";
 
 export interface User {
   id: string;
@@ -35,9 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = () => {
+    // Demo mode: jump straight to the dashboard with the fake user.
+    if (isDemoMode) {
+      window.location.href = `${window.location.origin}/dashboard`;
+      return;
+    }
+
     const returnUrl = `${window.location.origin}/dashboard`;
-    // Em produção, redirecionar diretamente para o backend Fly.io
-    // para evitar problemas com o proxy do Vercel em redirects OAuth 302.
+    // In production, redirect directly to the Fly.io backend to avoid
+    // Vercel proxy issues with OAuth 302 redirects.
     const apiBase = import.meta.env.VITE_API_BASE_URL
       || (window.location.hostname === "lanez.vercel.app" ? "https://lanez-app.fly.dev" : "");
     window.location.href = `${apiBase}/auth/microsoft?return_url=${encodeURIComponent(returnUrl)}`;
@@ -58,6 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth deve ser usado dentro de AuthProvider");
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
 }

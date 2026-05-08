@@ -58,6 +58,28 @@ pull request.
 5. Describe the change and the motivation in the PR body; link any related
    issue
 
+## Demo mode (portfolio screenshots)
+
+The frontend ships with a self-contained demo mode used only to produce
+screenshots for docs and portfolio material. It replaces every API call
+with synthetic fixtures, skips OAuth, and displays a small "DEMO DATA"
+badge in the corner. Nothing is persisted.
+
+```bash
+cd frontend
+echo "VITE_DEMO_MODE=true" >> .env.local
+npm run dev
+```
+
+Then open `http://localhost:5173` and click "Admin login" — you'll land
+straight on the dashboard with believable data across every page
+(Dashboard, Briefings list + detail, Memories, Audit, Settings). When
+you're done, delete the line from `.env.local` to go back to the real
+backend.
+
+Fixtures live in `frontend/src/demo/fixtures.ts` — edit there if you
+want different numbers or different subjects in the screenshots.
+
 ## Architecture notes
 
 - **Async-first** — all I/O uses `async`/`await` (SQLAlchemy 2.0 async engine,

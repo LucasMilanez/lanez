@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useI18n, interpolate } from "@/i18n/I18nContext";
 import type { BriefingListItem } from "@/hooks/useBriefings";
 
 interface BriefingCardProps {
@@ -10,6 +11,9 @@ interface BriefingCardProps {
 }
 
 export function BriefingCard({ briefing }: BriefingCardProps) {
+  const { t, locale } = useI18n();
+  const dateLocale = locale === "pt" ? ptBR : enUS;
+  const datePattern = locale === "pt" ? "dd 'de' MMM 'de' yyyy '·' HH:mm" : "MMM d, yyyy '·' HH:mm";
   const maxAttendees = 3;
   const visible = briefing.attendees.slice(0, maxAttendees);
   const remaining = briefing.attendees.length - maxAttendees;
@@ -20,9 +24,7 @@ export function BriefingCard({ briefing }: BriefingCardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="text-base">{briefing.event_subject}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            {format(new Date(briefing.event_start), "dd 'de' MMM 'de' yyyy '·' HH:mm", {
-              locale: ptBR,
-            })}
+            {format(new Date(briefing.event_start), datePattern, { locale: dateLocale })}
           </p>
         </CardHeader>
         <CardContent>
@@ -33,7 +35,9 @@ export function BriefingCard({ briefing }: BriefingCardProps) {
               </Badge>
             ))}
             {remaining > 0 && (
-              <Badge variant="outline">+{remaining} mais</Badge>
+              <Badge variant="outline">
+                {interpolate(t.briefingsPage.moreAttendees, { count: remaining })}
+              </Badge>
             )}
           </div>
         </CardContent>

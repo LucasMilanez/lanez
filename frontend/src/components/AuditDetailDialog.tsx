@@ -1,8 +1,8 @@
 /**
- * Dialog de detalhe de evento de auditoria — Fase 7.
+ * Audit event detail dialog.
  *
- * Mostra badge do tipo, marcador "falhou" se !success, timestamp pt-BR,
- * latência, bloco de erro e event_data formatado em JSON.
+ * Shows the event type badge, a "failed" marker if !success, a localized
+ * timestamp, latency, error block and the event_data formatted as JSON.
  */
 
 import {
@@ -13,6 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { AuditEventBadge } from "@/components/AuditEventBadge";
+import { useI18n } from "@/i18n/I18nContext";
 import type { AuditLogItem } from "@/hooks/useAuditLog";
 
 interface AuditDetailDialogProps {
@@ -21,6 +22,7 @@ interface AuditDetailDialogProps {
 }
 
 export function AuditDetailDialog({ item, onOpenChange }: AuditDetailDialogProps) {
+  const { t, locale } = useI18n();
   return (
     <Dialog open={item !== null} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -31,12 +33,12 @@ export function AuditDetailDialog({ item, onOpenChange }: AuditDetailDialogProps
                 <AuditEventBadge eventType={item.event_type} />
                 {!item.success && (
                   <span className="text-xs font-medium text-destructive">
-                    falhou
+                    {t.auditPage.failed}
                   </span>
                 )}
               </div>
               <DialogTitle className="font-mono text-sm">
-                {new Date(item.created_at).toLocaleString("pt-BR")}
+                {new Date(item.created_at).toLocaleString(locale === "pt" ? "pt-BR" : "en-US")}
               </DialogTitle>
               <DialogDescription>
                 {item.latency_ms !== null && `${item.latency_ms} ms`}
@@ -45,13 +47,13 @@ export function AuditDetailDialog({ item, onOpenChange }: AuditDetailDialogProps
 
             {item.error_message && (
               <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm">
-                <span className="font-medium">Erro: </span>
+                <span className="font-medium">{t.auditPage.errorLabelPrefix}: </span>
                 {item.error_message}
               </div>
             )}
 
             <div className="space-y-2">
-              <h4 className="text-sm font-medium">Detalhes</h4>
+              <h4 className="text-sm font-medium">{t.auditPage.details}</h4>
               <pre className="rounded-md bg-muted p-4 text-xs font-mono overflow-auto max-h-96">
                 {JSON.stringify(item.event_data, null, 2)}
               </pre>

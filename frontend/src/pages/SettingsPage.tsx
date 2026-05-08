@@ -28,6 +28,7 @@ export function SettingsPage() {
   const [copied, setCopied] = useState(false);
   const { t, locale } = useI18n();
   const dateLocale = locale === "pt" ? ptBR : enUS;
+  const dateTimePattern = locale === "pt" ? "dd/MM/yyyy 'às' HH:mm" : "MMM d, yyyy 'at' HH:mm";
 
   const handleRefreshToken = async () => {
     try {
@@ -132,7 +133,7 @@ export function SettingsPage() {
           <CardContent>
             <p className="font-display text-base font-semibold tabular-nums">
               {data.last_sync_at
-                ? format(new Date(data.last_sync_at), "dd/MM/yyyy 'às' HH:mm", {
+                ? format(new Date(data.last_sync_at), dateTimePattern, {
                     locale: dateLocale,
                   })
                 : t.settingsPage.never}
@@ -149,7 +150,7 @@ export function SettingsPage() {
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground tabular-nums">
               {t.settingsPage.expiresAt}{" "}
-              {format(new Date(data.token_expires_at), "dd/MM/yyyy 'às' HH:mm", {
+              {format(new Date(data.token_expires_at), dateTimePattern, {
                 locale: dateLocale,
               })}
             </p>

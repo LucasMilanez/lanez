@@ -3,6 +3,7 @@
  * (Vite proxy encaminha em dev). Cookies são enviados automaticamente
  * porque é same-origin do ponto de vista do browser.
  */
+import { demoGet, demoWrite, isDemoMode } from "@/demo/demoRouter";
 
 export class ApiError extends Error {
   status: number;
@@ -24,6 +25,25 @@ export class ApiError extends Error {
 const CSRF_HEADER = { "X-Requested-With": "XMLHttpRequest" } as const;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // Demo mode short-circuit — serves fixtures without a backend.
+  if (isDemoMode) {
+    const method = init?.method ?? "GET";
+    if (method === "GET") {
+      const stub = demoGet(path);
+      if (stub !== undefined) return stub as T;
+    } else {
+      let parsed: unknown = undefined;
+      if (typeof init?.body === "string") {
+        try {
+          parsed = JSON.parse(init.body);
+        } catch {
+          parsed = init.body;
+        }
+      }
+      return demoWrite(method, path, parsed) as T;
+    }
+  }
+
   const response = await fetch(path, {
     ...init,
     headers: {
@@ -59,6 +79,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 async function requestMultipart<T>(path: string, formData: FormData): Promise<T> {
+  if (isDemoMode) {
+    // Voice transcription stub in demo mode.
+    if (path === "/voice/transcribe") {
+      return {
+        transcription: "Demo mode — transcription is disabled. Connect a real backend to enable Groq Whisper.",
+        duration_ms: 320,
+      } as T;
+    }
+    return undefined as T;
+  }
+
   const response = await fetch(path, {
     method: "POST",
     body: formData, // NÃO setar Content-Type — fetch + FormData fazem com boundary correto

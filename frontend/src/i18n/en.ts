@@ -169,6 +169,7 @@ export const en = {
     inputTokens: "{count} input tokens",
     outputTokens: "{count} output",
     model: "model {name}",
+    moreAttendees: "+{count} more",
   },
 
   // Audit page
@@ -184,6 +185,9 @@ export const en = {
     status: "Status",
     ok: "ok",
     errorLabel: "error",
+    errorLabelPrefix: "Error",
+    details: "Details",
+    failed: "failed",
     previous: "Previous",
     next: "Next",
     eventTypes: {

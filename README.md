@@ -25,6 +25,34 @@ Live demo: [lanez.vercel.app](https://lanez.vercel.app) · Issues: [GitHub](http
 - **Voice Input** — Speech-to-text via Groq Whisper API
 - **Audit Trail** — Immutable log of all tool executions with latency tracking
 
+## Screenshots
+
+![Dashboard](docs/screenshots/dashboard.png)
+*Dashboard — Microsoft 365 integration status, embedding counts, Anthropic token usage, MCP activity and recent briefings.*
+
+<table>
+<tr>
+<td width="50%">
+<a href="docs/screenshots/briefings.png"><img src="docs/screenshots/briefings.png" alt="Briefings list" /></a>
+<p align="center"><em>Briefings — paginated history of auto-generated meeting preparations.</em></p>
+</td>
+<td width="50%">
+<a href="docs/screenshots/memories.png"><img src="docs/screenshots/memories.png" alt="Memories" /></a>
+<p align="center"><em>Memories — persistent user preferences, decisions and context snippets.</em></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<a href="docs/screenshots/audit.png"><img src="docs/screenshots/audit.png" alt="Audit log" /></a>
+<p align="center"><em>Audit — immutable trail of every MCP call, auth event and webhook delivery.</em></p>
+</td>
+<td width="50%">
+<a href="docs/screenshots/settings.png"><img src="docs/screenshots/settings.png" alt="Settings" /></a>
+<p align="center"><em>Settings — Microsoft token status and MCP client configuration.</em></p>
+</td>
+</tr>
+</table>
+
 ## Architecture
 
 ```

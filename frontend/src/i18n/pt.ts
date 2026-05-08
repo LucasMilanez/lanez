@@ -171,6 +171,7 @@ export const pt: Translations = {
     inputTokens: "{count} tokens de entrada",
     outputTokens: "{count} de saída",
     model: "modelo {name}",
+    moreAttendees: "+{count} mais",
   },
 
   // Audit page
@@ -186,6 +187,9 @@ export const pt: Translations = {
     status: "Status",
     ok: "ok",
     errorLabel: "erro",
+    errorLabelPrefix: "Erro",
+    details: "Detalhes",
+    failed: "falhou",
     previous: "Anterior",
     next: "Próximo",
     eventTypes: {

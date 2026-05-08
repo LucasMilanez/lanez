@@ -34,11 +34,11 @@ const EVENT_TYPES = [
 
 const pageSize = 50;
 
-function summarizeEventData(item: AuditLogItem): string {
+function summarizeEventData(item: AuditLogItem, failedLabel: string): string {
   const data = item.event_data as Record<string, unknown>;
   switch (item.event_type) {
     case "mcp.call":
-      return `${data.tool_name ?? "?"}${data.success === false ? " (falhou)" : ""}`;
+      return `${data.tool_name ?? "?"}${data.success === false ? ` (${failedLabel})` : ""}`;
     case "briefing.generated":
       return `event=${data.event_id ?? "?"} model=${data.model_used ?? "?"}`;
     case "memory.created":
@@ -197,7 +197,7 @@ export function AuditPage() {
                     <AuditEventBadge eventType={item.event_type} />
                   </TableCell>
                   <TableCell className="max-w-md truncate font-mono text-xs text-muted-foreground">
-                    {summarizeEventData(item)}
+                    {summarizeEventData(item, t.auditPage.failed)}
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs">
                     {item.latency_ms !== null ? `${item.latency_ms} ms` : "—"}

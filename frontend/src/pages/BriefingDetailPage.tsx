@@ -19,6 +19,8 @@ export function BriefingDetailPage() {
   const { data, isLoading, error, refetch } = useBriefing(eventId ?? "");
   const { t, locale } = useI18n();
   const dateLocale = locale === "pt" ? ptBR : enUS;
+  const detailDatePattern = locale === "pt" ? "dd 'de' MMMM 'de' yyyy '·' HH:mm" : "MMMM d, yyyy '·' HH:mm";
+  const generatedAtPattern = locale === "pt" ? "dd/MM/yyyy 'às' HH:mm" : "MMM d, yyyy 'at' HH:mm";
 
   if (isLoading) {
     return (
@@ -55,7 +57,7 @@ export function BriefingDetailPage() {
           {data.event_subject}
         </h2>
         <p className="text-sm text-muted-foreground tabular-nums">
-          {format(new Date(data.event_start), "dd 'de' MMMM 'de' yyyy '·' HH:mm", {
+          {format(new Date(data.event_start), detailDatePattern, {
             locale: dateLocale,
           })}
           {" — "}
@@ -81,7 +83,7 @@ export function BriefingDetailPage() {
         <div className="px-4 pb-3 pt-1 text-xs text-muted-foreground tabular-nums space-y-1">
           <p>
             {interpolate(t.briefingsPage.generatedAt, {
-              date: format(new Date(data.generated_at), "dd/MM/yyyy 'às' HH:mm", {
+              date: format(new Date(data.generated_at), generatedAtPattern, {
                 locale: dateLocale,
               }),
             })}

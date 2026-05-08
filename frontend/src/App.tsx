@@ -9,6 +9,7 @@ import { I18nProvider } from "@/i18n/I18nContext";
 import { AuthProvider } from "@/auth/AuthContext";
 import { ProtectedRoute } from "@/auth/ProtectedRoute";
 import { LoginPage } from "@/pages/LoginPage";
+import { DemoBadge } from "@/demo/DemoBadge";
 
 const AppShell = lazy(() => import("@/components/AppShell").then((m) => ({ default: m.AppShell })));
 const DashboardPage = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
@@ -50,6 +51,7 @@ export default function App() {
                 </Routes>
               </Suspense>
               <Toaster />
+              <DemoBadge />
             </AuthProvider>
           </BrowserRouter>
         </QueryClientProvider>
