@@ -1,15 +1,22 @@
 # Lanez
 
+[![CI](https://github.com/LucasMilanez/lanez/actions/workflows/ci.yml/badge.svg)](https://github.com/LucasMilanez/lanez/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![MCP Spec 2025-06-18](https://img.shields.io/badge/MCP-2025--06--18-5EEAD4.svg)](https://modelcontextprotocol.io/)
+
 > Self-hosted MCP server that connects AI assistants to your Microsoft 365 data — calendar, emails, OneNote, OneDrive — with semantic search, persistent memory, and automatic meeting briefings.
 
 **An open-source alternative for users who prefer self-hosting their AI–Microsoft 365 bridge inside their own MCP client (Claude Desktop, Cursor, etc.) instead of relying on a vendor-managed assistant.**
+
+Live demo: [lanez.vercel.app](https://lanez.vercel.app) · Issues: [GitHub](https://github.com/LucasMilanez/lanez/issues) · Security: [SECURITY.md](SECURITY.md)
 
 ---
 
 ## Features
 
-- **9 MCP Tools** — Calendar events, email search, OneNote pages, OneDrive files, web search, semantic search, memory save/recall, meeting briefings
-- **MCP Protocol 2025-06-18** — Standard JSON-RPC 2.0 over HTTP, compatible with any MCP client
+- **10 MCP Tools** — Calendar events, email search, OneNote pages (with content reading), OneDrive/SharePoint files (with `.txt`/`.md`/`.csv`/`.docx` content), direct URL file reading, web search, semantic search, memory save/recall, meeting briefings
+- **MCP Protocol 2025-06-18** — JSON-RPC 2.0 over HTTP, compatible with any MCP client
 - **Semantic Search** — Cross-service search using sentence embeddings (pgvector)
 - **Persistent Memory** — Save and recall context across sessions
 - **Auto Briefings** — Pre-meeting briefings generated from emails, notes, and files related to attendees
@@ -161,7 +168,7 @@ Lanez implements the [Model Context Protocol](https://modelcontextprotocol.io/) 
 }
 ```
 
-3. Restart your client — 9 tools should appear
+3. Restart your client — 10 tools should appear
 
 See [docs/mcp-client-setup.md](docs/mcp-client-setup.md) for detailed instructions.
 
@@ -196,7 +203,9 @@ pytest
 pytest --cov=app --cov-report=html
 ```
 
-The test suite includes 217 tests covering unit, integration, and property-based testing (Hypothesis).
+The test suite covers unit, integration and Hypothesis property-based tests
+on the backend, plus Vitest + Testing Library on the frontend. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for full commands.
 
 ## Project Structure
 
@@ -210,10 +219,10 @@ lanez/
 │   ├── models/             # SQLAlchemy ORM models
 │   ├── routers/            # API endpoints (10 routers)
 │   ├── schemas/            # Pydantic request/response schemas
-│   └── services/           # Business logic (10 services)
+│   └── services/           # Business logic (11 services)
 ├── frontend/               # React + Vite + TailwindCSS
 ├── alembic/                # Database migrations
-├── tests/                  # Test suite (217 tests)
+├── tests/                  # Backend test suite
 ├── docs/                   # Documentation
 ├── docker-compose.yml      # Local dev stack (5 services)
 ├── Dockerfile              # Production image
@@ -223,3 +232,29 @@ lanez/
 ## License
 
 [MIT](LICENSE)
+
+Third-party model license: the default embedding model
+[`sentence-transformers/all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
+is distributed under Apache-2.0.
+
+## Known limitations
+
+- **Single-user by design.** Lanez stores one set of Microsoft credentials
+  per row in `users`, but the panel, OAuth flow and rate limits are tuned
+  for a personal deployment. Running it as multi-tenant SaaS would
+  require additional tenant isolation, per-tenant quotas, and billing —
+  out of scope.
+- **MCP transport.** Only Streamable HTTP (`mcp-remote` + HTTP JSON-RPC)
+  is tested end-to-end. Legacy SSE endpoints exist for compatibility
+  but are not actively maintained. Pure `stdio` transport is not
+  supported.
+- **Web search in production.** The SearXNG container is not part of the
+  default production stack on Fly.io. The `web_search` MCP tool returns
+  an `unavailable` stub there; self-hosting SearXNG is straightforward
+  but intentionally opt-in.
+- **Key rotation.** Rotating `SECRET_KEY` or `FERNET_SALT` invalidates
+  all stored Microsoft tokens. A zero-downtime rotation procedure is
+  not currently implemented — every user must re-authenticate after a
+  rotation.
+- **Briefings are generated only for Outlook Calendar events.** Other
+  calendar providers (Google, iCloud) are not covered.

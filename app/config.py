@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     # contra erros de configuração no Azure Portal — multi-tenant, common, etc).
     # Comma-separated, case-insensitive. Vazio = sem restrição (qualquer
     # email que passar no OAuth entra). Recomendado em produção single-user.
-    # Exemplo: ALLOWED_EMAILS="lucas@lanez.pt,admin@example.com"
+    # Exemplo: ALLOWED_EMAILS="admin@example.com,owner@example.com"
     ALLOWED_EMAILS: str = ""
 
     # Salt usado para derivar a chave Fernet a partir de SECRET_KEY via PBKDF2.

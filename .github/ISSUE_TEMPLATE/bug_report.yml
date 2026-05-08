@@ -1,0 +1,92 @@
+name: Bug report
+description: Something is broken or behaves differently than documented.
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not report **security vulnerabilities** here — use
+        GitHub's [private security advisory](https://github.com/LucasMilanez/lanez/security/advisories/new)
+        instead. See [SECURITY.md](../SECURITY.md) for details.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One sentence describing the bug.
+      placeholder: e.g. `/auth/callback` returns 500 when `return_url` has trailing slash
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal, numbered steps. Include exact URLs, commands, and payloads.
+      placeholder: |
+        1. Open the panel at https://lanez.vercel.app
+        2. Click "Sign in with Microsoft"
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include HTTP status codes, stack traces, or log excerpts when relevant.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - Backend (FastAPI)
+        - Frontend (React)
+        - MCP router
+        - Auth / OAuth flow
+        - Graph integration
+        - Embeddings / semantic search
+        - Briefings / Anthropic integration
+        - Voice / Groq integration
+        - Infra (Docker, Fly.io, Vercel)
+        - Docs
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Output of `git rev-parse HEAD` or the Docker image tag.
+      placeholder: e.g. 8fb0e35
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        - OS: macOS 14.4
+        - Python: 3.12.2
+        - Docker: 27.0.3
+        - Browser: Firefox 142 (frontend issues only)
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste stack traces or `fly logs` output. Redact any token before pasting.
+      render: shell

@@ -280,7 +280,7 @@ TOOL_READ_FILE_BY_URL = MCPTool(
     description=(
         "Lê o conteúdo de um ficheiro a partir de um URL direto do SharePoint ou OneDrive. "
         "Use quando o utilizador partilhar um link direto para um ficheiro "
-        "(ex: https://lanezz-my.sharepoint.com/.../documento.docx). "
+        "(ex: https://contoso-my.sharepoint.com/.../documento.docx). "
         "Suporta .txt, .md, .csv e .docx (máximo 100 KB)."
     ),
     inputSchema={

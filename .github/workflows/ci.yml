@@ -6,9 +6,36 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  test:
+  lint-backend:
+    name: Lint (ruff)
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install ruff
+        run: pip install ruff==0.8.4
+      - name: Run ruff
+        run: ruff check app tests
+
+  test-backend:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
 
     services:
       postgres:
@@ -41,6 +68,7 @@ jobs:
       SECRET_KEY: test-secret-key-for-ci-only
       MICROSOFT_CLIENT_ID: test-client-id
       MICROSOFT_CLIENT_SECRET: test-client-secret
+      MICROSOFT_TENANT_ID: test-tenant-id
       MICROSOFT_REDIRECT_URI: http://localhost:8000/auth/callback
       WEBHOOK_CLIENT_STATE: test-webhook-state
       ANTHROPIC_API_KEY: test-key-not-used
@@ -49,10 +77,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: Install dependencies
@@ -64,6 +92,7 @@ jobs:
         run: pytest --tb=short -q
 
   frontend:
+    name: Frontend (type-check + build + tests)
     runs-on: ubuntu-latest
 
     defaults:
@@ -86,5 +115,24 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+      - name: Unit tests
+        run: npm test
+
       - name: Build
         run: npm run build
+
+  docker-build:
+    name: Docker image build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: lanez:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

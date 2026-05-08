@@ -1,32 +1,33 @@
-# Configurar Claude Desktop com Lanez
+# Connecting an MCP client to Lanez
 
-Lanez expõe 9 ferramentas via MCP (Model Context Protocol). Este guia
-configura o Claude Desktop para usá-las.
+Lanez exposes 10 tools via the [Model Context Protocol](https://modelcontextprotocol.io/) (spec `2025-06-18`). Any MCP-compatible client can connect — this guide uses **Claude Desktop** as the example, but the same configuration works for Cursor, Continue, or any other MCP-aware client.
 
-## Pré-requisitos
+## Prerequisites
 
-- Conta com login OAuth Microsoft no Lanez ja feito ao menos uma vez.
-- Node.js 18+ instalado (para `npx mcp-remote`).
-- Claude Desktop instalado (https://claude.ai/download).
+- An active Lanez account (complete the Microsoft OAuth flow in the web panel at least once).
+- Node.js 18+ installed (required by `mcp-remote`).
+- An MCP client (e.g. [Claude Desktop](https://claude.ai/download)).
 
-## 1. Obter Bearer token
+## 1. Get a Bearer token
 
-O Lanez emite JWT no painel web. A forma mais fácil de obter o token:
+Lanez issues a 7-day JWT that the MCP client will send on every request.
 
-1. Fazer login no painel: `https://lanez.vercel.app`
-2. Ir em **Configurações** (menu lateral)
-3. Clicar em **"Gerar token MCP"**
-4. Copiar o token exibido (válido por 7 dias)
+The easiest way to get one:
 
-### Alternativa (via API direta)
+1. Sign in to the web panel at [https://lanez.vercel.app](https://lanez.vercel.app)
+2. Open **Settings** from the sidebar
+3. Click **"Generate MCP token"**
+4. Copy the token — it is valid for 7 days
 
-Se já estiver autenticado (cookie ativo), acessar:
+### Alternative — direct API call
+
+If you already have an active session cookie, you can hit the endpoint directly:
 
 ```
 GET https://lanez-app.fly.dev/auth/token
 ```
 
-Retorna:
+Response:
 
 ```json
 {
@@ -36,46 +37,55 @@ Retorna:
 }
 ```
 
-## 2. Editar `claude_desktop_config.json`
+## 2. Edit `claude_desktop_config.json`
 
-Localização:
+Location of the config file:
 
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
-Adicionar a entrada `lanez` em `mcpServers`:
+Add a `lanez` entry to `mcpServers`:
 
 ```json
 {
   "mcpServers": {
     "lanez": {
-      "command": "npx",
+      "command": "mcp-remote",
       "args": [
-        "-y",
-        "mcp-remote",
         "https://lanez-app.fly.dev/mcp",
         "--header",
-        "Authorization: Bearer <COLE_O_TOKEN_AQUI>"
+        "Authorization: Bearer <PASTE_YOUR_TOKEN_HERE>"
       ]
     }
   }
 }
 ```
 
-## 3. Reiniciar Claude Desktop
+> If `mcp-remote` is not on your `PATH`, replace `"command": "mcp-remote"` with `"command": "npx"` and prepend `"-y", "mcp-remote",` to the `args` array.
 
-Fechar completamente (não basta minimizar) e reabrir. O ícone de
-ferramentas (slider) deve mostrar 9 entradas Lanez:
-`get_calendar_events`, `search_emails`, `get_onenote_pages`,
-`search_files`, `web_search`, `semantic_search`, `save_memory`,
-`recall_memory`, `get_briefing`.
+## 3. Restart the MCP client
+
+Quit the client fully (not just minimize) and reopen. The tools icon should show the following 10 entries provided by Lanez:
+
+| Tool | Purpose |
+|------|---------|
+| `get_calendar_events` | List Outlook calendar events in a date range |
+| `search_emails` | Full-text search across the inbox |
+| `get_onenote_pages` | List OneNote pages, optionally with page content |
+| `search_files` | Search OneDrive and SharePoint (with optional content reading for `.txt`/`.md`/`.csv`/`.docx`) |
+| `read_file_by_url` | Read a file from a direct OneDrive/SharePoint URL |
+| `web_search` | Web search via self-hosted SearXNG |
+| `semantic_search` | Cross-service semantic search over all indexed content |
+| `save_memory` | Persist a note, decision or preference for future sessions |
+| `recall_memory` | Retrieve relevant memories by semantic similarity |
+| `get_briefing` | Fetch the auto-generated briefing for a meeting |
 
 ## Troubleshooting
 
-- **401 nas requests**: token expirou. Refazer passo 1.
-- **404 ao listar tools**: URL errada. Confirmar que é `https://lanez-app.fly.dev/mcp` (sem `/call`, sem `/sse`).
-- **Tools não aparecem**: verificar logs do Claude Desktop em
-  `~/Library/Logs/Claude/mcp*.log` (macOS) ou
-  `%APPDATA%\Claude\logs\mcp*.log` (Windows).
-- **Tool retorna erro de Graph API**: token Microsoft pode ter expirado.
-  Fazer login no painel `https://lanez.vercel.app` para renovar.
+| Symptom | Likely cause / fix |
+|---------|--------------------|
+| **401 on every request** | Token expired. Generate a new one (step 1). |
+| **404 when listing tools** | Wrong URL. Confirm the MCP endpoint is exactly `https://lanez-app.fly.dev/mcp` — no `/call`, no `/sse`. |
+| **Tools don't show up at all** | Check the Claude Desktop logs at `~/Library/Logs/Claude/mcp*.log` (macOS) or `%APPDATA%\Claude\logs\mcp*.log` (Windows). |
+| **Tool returns a Graph API error** | Your Microsoft token might have expired. Sign in to [https://lanez.vercel.app](https://lanez.vercel.app) to refresh it. |
+| **`mcp-remote` not found** | Install it globally (`npm install -g mcp-remote`) or switch to the `npx -y mcp-remote` form described above. |

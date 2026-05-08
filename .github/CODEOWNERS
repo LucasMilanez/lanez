@@ -1,0 +1,14 @@
+# Default owner for everything. Require review from the maintainer on
+# any change that lands in main.
+*                       @LucasMilanez
+
+# Infra and security-sensitive paths — explicit to surface in PR UI.
+/.github/                @LucasMilanez
+/app/routers/auth.py     @LucasMilanez
+/app/csrf.py             @LucasMilanez
+/app/rate_limit.py       @LucasMilanez
+/app/models/user.py      @LucasMilanez
+/fly.toml                @LucasMilanez
+/Dockerfile              @LucasMilanez
+/docker-compose.yml      @LucasMilanez
+/alembic/                @LucasMilanez

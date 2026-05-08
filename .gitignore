@@ -29,21 +29,15 @@ pass.txt
 htmlcov/
 .coverage
 
+# Byte-compiled
+*.pyc
+
 # OS
 .DS_Store
 Thumbs.db
 
-# Byte-compiled
-*.pyc
-
-# Kiro specs & AI tooling
-.kiro/
-
-# Internal docs (briefings, audits)
-docs/kiro-briefing-*.md
-docs/auditoria-*.md
-
-# Temporary/scratch files
-_preflight_verify*.py
+# Scratch files
 hello-fly/
-lerantes.md
+_*.py
+_*.txt
+_*.ps1

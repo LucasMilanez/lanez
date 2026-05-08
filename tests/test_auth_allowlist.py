@@ -61,7 +61,7 @@ async def test_callback_rejects_email_not_in_allowlist(monkeypatch):
     """Com ALLOWED_EMAILS setado, email fora da lista → 403."""
     from app.routers import auth as auth_module
 
-    monkeypatch.setattr(auth_module.settings, "ALLOWED_EMAILS", "lucas@lanez.pt")
+    monkeypatch.setattr(auth_module.settings, "ALLOWED_EMAILS", "owner@example.com")
 
     redis, db, mock_client, bg = _build_mocks("someone.else@outlook.com")
 
@@ -87,7 +87,7 @@ async def test_callback_allows_email_in_allowlist(monkeypatch):
     """Com ALLOWED_EMAILS setado, email na lista → prossegue normalmente."""
     from app.routers import auth as auth_module
 
-    monkeypatch.setattr(auth_module.settings, "ALLOWED_EMAILS", "lucas@lanez.pt,admin@example.com")
+    monkeypatch.setattr(auth_module.settings, "ALLOWED_EMAILS", "owner@example.com,admin@example.com")
 
     redis, db, mock_client, bg = _build_mocks("admin@example.com")
 
@@ -112,9 +112,9 @@ async def test_callback_is_case_insensitive(monkeypatch):
     """Comparação do allowlist ignora case."""
     from app.routers import auth as auth_module
 
-    monkeypatch.setattr(auth_module.settings, "ALLOWED_EMAILS", "Lucas@Lanez.PT")
+    monkeypatch.setattr(auth_module.settings, "ALLOWED_EMAILS", "Owner@Example.COM")
 
-    redis, db, mock_client, bg = _build_mocks("LUCAS@lanez.pt")
+    redis, db, mock_client, bg = _build_mocks("OWNER@example.com")
 
     with patch("app.routers.auth.httpx.AsyncClient", return_value=mock_client), \
          patch("app.routers.auth.log_event", new=AsyncMock()):
