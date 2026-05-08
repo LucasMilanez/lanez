@@ -29,6 +29,13 @@ export default {
           "-apple-system",
           "sans-serif",
         ],
+        grotesk: [
+          "Space Grotesk",
+          "Inter",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
       },
       colors: {
         border: "hsl(var(--border))",
