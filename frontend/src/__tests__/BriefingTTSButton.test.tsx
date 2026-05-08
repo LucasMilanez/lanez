@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { screen } from "@testing-library/react";
+import { renderWithProviders, setLocale } from "./test-utils";
 import { BriefingTTSButton } from "@/components/BriefingTTSButton";
 
 vi.mock("@/hooks/useSpeechSynthesis", () => ({
@@ -7,6 +8,11 @@ vi.mock("@/hooks/useSpeechSynthesis", () => ({
 }));
 
 describe("BriefingTTSButton", () => {
+  beforeEach(() => {
+    // Os testes usam as strings em PT; forçamos o locale antes de renderizar.
+    setLocale("pt");
+  });
+
   it("renders a disabled button with tooltip when TTS is not supported", async () => {
     const { useSpeechSynthesis } = await import("@/hooks/useSpeechSynthesis");
     vi.mocked(useSpeechSynthesis).mockReturnValue({
@@ -18,8 +24,10 @@ describe("BriefingTTSButton", () => {
       supported: false,
     });
 
-    render(<BriefingTTSButton content="test content" />);
-    const btn = screen.getByRole("button", { name: /ouvir resumo/i });
+    renderWithProviders(<BriefingTTSButton content="test content" />);
+    // Quando o botão está disabled, o aria-label é "Síntese de voz..." — que
+    // sobrescreve o nome acessível. Buscamos pelo texto visível do botão.
+    const btn = screen.getByText("Ouvir resumo").closest("button");
     expect(btn).toBeDisabled();
     expect(btn).toHaveAttribute("title");
   });
@@ -35,7 +43,7 @@ describe("BriefingTTSButton", () => {
       supported: true,
     });
 
-    render(<BriefingTTSButton content="test content" />);
+    renderWithProviders(<BriefingTTSButton content="test content" />);
     expect(screen.getByText("Pausar")).toBeInTheDocument();
     expect(screen.getByText("Parar")).toBeInTheDocument();
   });

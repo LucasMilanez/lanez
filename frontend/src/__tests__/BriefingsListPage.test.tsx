@@ -1,22 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
-import { ThemeProvider } from "@/theme/ThemeContext";
+import { screen, waitFor } from "@testing-library/react";
+import { renderWithProviders } from "./test-utils";
 import { BriefingsListPage } from "@/pages/BriefingsListPage";
-
-function renderPage() {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <ThemeProvider>
-      <QueryClientProvider client={qc}>
-        <MemoryRouter>
-          <BriefingsListPage />
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
-  );
-}
 
 beforeEach(() => {
   vi.mocked(global.fetch).mockReset();
@@ -27,6 +12,8 @@ describe("BriefingsListPage", () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       status: 200,
+      statusText: "OK",
+      headers: new Headers({ "content-type": "application/json" }),
       json: async () => ({
         items: [
           {
@@ -63,7 +50,7 @@ describe("BriefingsListPage", () => {
       }),
     } as Response);
 
-    renderPage();
+    renderWithProviders(<BriefingsListPage />);
 
     await waitFor(() => {
       expect(screen.getByText("Reunião de planejamento")).toBeInTheDocument();

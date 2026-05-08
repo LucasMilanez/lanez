@@ -1,7 +1,6 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MemoryRouter } from "react-router-dom";
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { renderWithProviders, setLocale } from "./test-utils";
 
 // Mock useAuditLog before importing AuditPage
 vi.mock("@/hooks/useAuditLog", () => ({
@@ -14,19 +13,14 @@ import { useAuditLog } from "@/hooks/useAuditLog";
 const mockUseAuditLog = useAuditLog as ReturnType<typeof vi.fn>;
 
 function renderPage() {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <AuditPage />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
+  return renderWithProviders(<AuditPage />);
 }
 
 describe("AuditPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // AuditDetailDialog usa "Detalhes" em PT.
+    setLocale("pt");
   });
 
   it("shows loading skeleton when isLoading", () => {
@@ -37,7 +31,6 @@ describe("AuditPage", () => {
       refetch: vi.fn(),
     });
     renderPage();
-    // LoadingSkeleton renders divs with animate-pulse
     const skeletons = document.querySelectorAll(".animate-pulse");
     expect(skeletons.length).toBeGreaterThan(0);
   });
@@ -74,11 +67,14 @@ describe("AuditPage", () => {
       refetch: vi.fn(),
     });
     renderPage();
-    expect(screen.getAllByText("mcp.call").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("auth.login").length).toBeGreaterThanOrEqual(1);
+    // Badge agora mostra label traduzido ("Chamada MCP", "Login"); o texto
+    // técnico "mcp.call" ainda aparece no botão de filtro + no title do badge,
+    // então garantimos que ambos os tipos aparecem ao menos como elementos.
+    expect(screen.getAllByText(/Chamada MCP|mcp\.call/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Login|auth\.login/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("opens detail dialog when row is clicked", async () => {
+  it("opens detail dialog when row is clicked", () => {
     mockUseAuditLog.mockReturnValue({
       data: {
         items: [
@@ -102,11 +98,10 @@ describe("AuditPage", () => {
     });
     renderPage();
 
-    // Click on the row
     const row = screen.getByText("search_emails").closest("tr");
     if (row) fireEvent.click(row);
 
-    // Dialog should show the Detalhes heading and pre with JSON
+    // Dialog should show the Detalhes heading
     expect(screen.getByText("Detalhes")).toBeTruthy();
   });
 });
