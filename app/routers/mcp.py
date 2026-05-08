@@ -18,7 +18,7 @@ from io import BytesIO
 from typing import Any
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -881,10 +881,9 @@ async def list_tools(user: User = Depends(get_current_user)) -> dict:
 
 @router.post("")
 @router.post("/")
-@limiter.limit("120/minute")
 async def mcp_dispatch(
     request: Request,
-    body: MCPCallRequest,
+    body: MCPCallRequest = Body(...),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     redis: aioredis.Redis = Depends(get_redis),

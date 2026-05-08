@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from pydantic import BaseModel
@@ -42,7 +43,7 @@ _ALLOWED_CONTENT_TYPES = {
 @limiter.limit("30/minute")
 async def transcribe(
     request: Request,
-    audio: UploadFile = File(...),
+    audio: Annotated[UploadFile, File(...)],
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> VoiceTranscriptionResponse:

@@ -43,9 +43,10 @@ async def list_audit_log(
         filters.append(AuditLog.created_at <= until)
 
     if q:
+        escaped_q = q.replace("%", r"\%").replace("_", r"\_")
         filters.append(
-            AuditLog.event_type.ilike(f"%{q}%")
-            | func.cast(AuditLog.event_data, String).ilike(f"%{q}%")
+            AuditLog.event_type.ilike(f"%{escaped_q}%")
+            | func.cast(AuditLog.event_data, String).ilike(f"%{escaped_q}%")
         )
 
     # Count total (mesmos filtros, sem offset/limit)

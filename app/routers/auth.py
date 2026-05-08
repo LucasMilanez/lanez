@@ -64,9 +64,18 @@ _HTTP_TIMEOUT = 30.0
 
 
 def _is_allowed_return_url(url: str) -> bool:
-    """Valida que return_url começa com uma origem listada em CORS_ORIGINS."""
-    allowed = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
-    return any(url.startswith(origin) for origin in allowed)
+    """Valida que return_url pertence exatamente a uma origem em CORS_ORIGINS.
+
+    Compara scheme + host + port (se presente). Rejeita subdomínios e
+    sufixos maliciosos (ex: https://lanez.vercel.app.evil.com).
+    """
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    url_origin = f"{parsed.scheme}://{parsed.netloc}"
+
+    allowed = [o.strip().rstrip("/") for o in settings.CORS_ORIGINS.split(",") if o.strip()]
+    return url_origin in allowed
 
 
 def _is_email_allowed(email: str) -> bool:

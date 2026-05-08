@@ -113,14 +113,18 @@ class GraphService:
                 detail="Rate limit excedido. Tente novamente mais tarde.",
             )
 
-    # --------------------------------------------------------Le----------
+    # ------------------------------------------------------------------
     # Token refresh
     # ------------------------------------------------------------------
 
     async def _refresh_access_token(
         self, user: User, db: AsyncSession
     ) -> str:
-        """Renova o access_token via Entra ID e persiste os novos tokens."""
+        """Renova o access_token via Entra ID e persiste os novos tokens.
+
+        Usa os property setters do User (que criptografam automaticamente).
+        NÃO faz commit — responsabilidade do boundary (get_db dependency).
+        """
         token_url = _TOKEN_URL_TEMPLATE.format(
             tenant_id=settings.MICROSOFT_TENANT_ID
         )
@@ -143,17 +147,18 @@ class GraphService:
             )
 
         data = resp.json()
-        user.microsoft_access_token = data["access_token"]
-        user.microsoft_refresh_token = data["refresh_token"]
+        new_access = data["access_token"]
+        user.microsoft_access_token = new_access
+        user.microsoft_refresh_token = data.get("refresh_token", user.microsoft_refresh_token)
         user.token_expires_at = datetime.now(timezone.utc) + timedelta(
             seconds=data.get("expires_in", 3600)
         )
-        await db.commit()
+        await db.flush()
         logger.info(
             "Token renovado com sucesso para user_id=%s [token=REDACTED]",
             user.id,
         )
-        return data["access_token"]
+        return new_access
 
     # ------------------------------------------------------------------
     # Graph API request with 429 backoff

@@ -16,7 +16,15 @@ from app.config import settings
 # SQLAlchemy async engine + session factory
 # ---------------------------------------------------------------------------
 
-engine = create_async_engine(settings.DATABASE_URL, echo=False)
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=False,
+    # Pre-ping avoids `connection is closed` errors when the pool hands
+    # out an idle connection that the DB (Neon free tier, Upstash, etc.)
+    # has already dropped. Cost: one SELECT 1 per checkout.
+    pool_pre_ping=True,
+    pool_recycle=1800,
+)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,

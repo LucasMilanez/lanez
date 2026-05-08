@@ -6,21 +6,34 @@ para um evento específico do calendar do usuário.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+import redis.asyncio as aioredis
+from collections.abc import AsyncGenerator
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_db, get_redis
 from app.dependencies import get_current_user
 from app.models.briefing import Briefing
 from app.models.user import User
+from app.rate_limit import limiter
 from app.schemas.briefing import (
     BriefingListItem,
     BriefingListResponse,
     BriefingResponse,
 )
+from app.services.briefing import generate_briefing
+from app.services.graph import GraphService
 
 router = APIRouter(prefix="/briefings", tags=["briefings"])
+
+
+async def _get_graph_service() -> AsyncGenerator[GraphService, None]:
+    service = GraphService()
+    try:
+        yield service
+    finally:
+        await service.close()
 
 
 @router.get("", response_model=BriefingListResponse)
@@ -37,7 +50,9 @@ async def list_briefings(
     """
     filters = [Briefing.user_id == user.id]
     if q:
-        filters.append(Briefing.event_subject.ilike(f"%{q}%"))
+        # Escape SQL LIKE wildcards in user input to prevent unintended matches
+        escaped_q = q.replace("%", r"\%").replace("_", r"\_")
+        filters.append(Briefing.event_subject.ilike(f"%{escaped_q}%"))
 
     count_stmt = select(func.count()).select_from(Briefing).where(*filters)
     total = (await db.execute(count_stmt)).scalar_one()
@@ -85,3 +100,26 @@ async def get_briefing_by_event(
         raise HTTPException(status_code=404, detail="Briefing não encontrado")
 
     return briefing
+
+
+@router.post("/generate/{event_id}", response_model=BriefingResponse)
+@limiter.limit("5/minute")
+async def generate_briefing_on_demand(
+    request: Request,
+    event_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis),
+    graph: GraphService = Depends(_get_graph_service),
+) -> BriefingResponse:
+    """Força a geração de um briefing agora, sem esperar o webhook do Graph.
+
+    Útil para demonstrações (vídeo no LinkedIn, smoke tests após deploy) e
+    para preencher retroativamente briefings de eventos que já passaram.
+
+    Idempotente por (user_id, event_id) — chamar duas vezes para o mesmo
+    evento retorna o briefing existente sem gastar tokens extra.
+
+    Retorna 404 se o evento não existir no calendar do usuário.
+    """
+    return await generate_briefing(db, redis, graph, user, event_id)

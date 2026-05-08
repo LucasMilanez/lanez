@@ -14,6 +14,7 @@ from app.config import settings
 
 _MODEL_ID = "claude-haiku-4-5-20251001"
 _MAX_TOKENS = 1500
+_REQUEST_TIMEOUT = 60.0  # seconds — prevents hanging if Anthropic is slow
 
 _client: AsyncAnthropic | None = None
 
@@ -39,7 +40,10 @@ def get_anthropic_client() -> AsyncAnthropic:
     """
     global _client
     if _client is None:
-        _client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+        _client = AsyncAnthropic(
+            api_key=settings.ANTHROPIC_API_KEY,
+            timeout=_REQUEST_TIMEOUT,
+        )
     return _client
 
 
