@@ -10,7 +10,6 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from io import BytesIO
 
 import httpx
 import redis.asyncio as aioredis
@@ -22,7 +21,6 @@ from app.config import settings
 from app.models.cache import GraphCache
 from app.models.user import User
 from app.schemas.graph import GraphDataResponse, ServiceType
-from app.services.cache import CacheService
 
 logger = logging.getLogger(__name__)
 

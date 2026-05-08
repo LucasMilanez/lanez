@@ -8,7 +8,7 @@ garante isolamento entre usuários e serviços.
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, Uuid
+from sqlalchemy import DateTime, ForeignKey, Index, String, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
