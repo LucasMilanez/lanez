@@ -11,10 +11,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
+from app.csrf import CSRFMiddleware
 from app.database import AsyncSessionLocal, close_redis, engine, init_redis
 from app.models import Base  # importa Base + todos os modelos (side-effect)
+from app.rate_limit import limiter
 from app.routers import auth, audit, briefings, graph, health, mcp, memories, status, voice, webhooks
 from app.services.embeddings import get_model
 from app.services.webhook import WebhookService
@@ -110,18 +114,41 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------------------------
+# Rate limiter — slowapi
+# ---------------------------------------------------------------------------
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ---------------------------------------------------------------------------
 # Middleware CORS — origens configuráveis via settings.CORS_ORIGINS
 # ---------------------------------------------------------------------------
 
+_cors_origins = [
+    origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()
+]
+
+# Safety assertion — combinar '*' com credentials=True é um erro de segurança
+# (qualquer origem poderia enviar cookies). Falha rápido no startup.
+if "*" in _cors_origins:
+    raise RuntimeError(
+        "CORS_ORIGINS contém '*' combinado com credentials=True. "
+        "Especifique origens explícitas (ex: 'https://lanez.vercel.app')."
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# Middleware CSRF — defesa em profundidade
+# ---------------------------------------------------------------------------
+
+app.add_middleware(CSRFMiddleware)
 
 # ---------------------------------------------------------------------------
 # Routers

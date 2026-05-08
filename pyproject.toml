@@ -6,7 +6,7 @@ readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"
 authors = [
-    { name = "Lucas Milanez", email = "lucas.milanez@hotmail.com" },
+    { name = "Lucas Milanez", email = "lucas@lanez.pt" },
 ]
 keywords = ["mcp", "model-context-protocol", "microsoft-365", "graph-api", "fastapi", "self-hosted", "ai", "anthropic"]
 classifiers = [

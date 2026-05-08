@@ -29,6 +29,7 @@ from app.database import get_db, get_redis
 from app.dependencies import get_current_user
 from app.models.briefing import Briefing
 from app.models.user import User
+from app.rate_limit import limiter
 from app.services.audit import AuditEventType, log_event
 from app.services.graph import GraphService
 from app.services.searxng import SearXNGService
@@ -880,8 +881,10 @@ async def list_tools(user: User = Depends(get_current_user)) -> dict:
 
 @router.post("")
 @router.post("/")
+@limiter.limit("120/minute")
 async def mcp_dispatch(
-    request: MCPCallRequest,
+    request: Request,
+    body: MCPCallRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     redis: aioredis.Redis = Depends(get_redis),
@@ -890,11 +893,11 @@ async def mcp_dispatch(
 ) -> Response:
     """Dispatcher JSON-RPC 2.0 conforme MCP spec 2025-06-18 (Streamable HTTP)."""
     # Validar envelope
-    if request.jsonrpc != "2.0":
-        return JSONResponse(jsonrpc_error(request.id, -32600, "jsonrpc deve ser '2.0'"))
+    if body.jsonrpc != "2.0":
+        return JSONResponse(jsonrpc_error(body.id, -32600, "jsonrpc deve ser '2.0'"))
 
-    method = request.method
-    params = request.params
+    method = body.method
+    params = body.params
 
     # Notification: notifications/initialized → 202 sem body (política permissiva: ignora id)
     if method == "notifications/initialized":
@@ -902,17 +905,17 @@ async def mcp_dispatch(
 
     # Dispatch por método
     if method == "initialize":
-        response_data = _handle_initialize(request.id, params)
+        response_data = _handle_initialize(body.id, params)
     elif method == "ping":
-        response_data = _handle_ping(request.id)
+        response_data = _handle_ping(body.id)
     elif method == "tools/list":
-        response_data = _handle_tools_list(request.id)
+        response_data = _handle_tools_list(body.id)
     elif method == "tools/call":
         response_data = await _handle_tools_call(
-            request.id, params, user, db, redis, graph, searxng
+            body.id, params, user, db, redis, graph, searxng
         )
     else:
-        response_data = jsonrpc_error(request.id, -32601, f"Método '{method}' não suportado")
+        response_data = jsonrpc_error(body.id, -32601, f"Método '{method}' não suportado")
 
     # Header de sessão stateless
     headers = {}

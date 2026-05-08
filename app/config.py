@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     # Exemplo: ALLOWED_EMAILS="lucas@lanez.pt,admin@example.com"
     ALLOWED_EMAILS: str = ""
 
+    # Salt usado para derivar a chave Fernet a partir de SECRET_KEY via PBKDF2.
+    # Valor default preservado por compatibilidade com bancos existentes —
+    # alterar QUEBRA a descriptografia de tokens Microsoft já armazenados
+    # (force re-login de todos os users). Para um novo deploy, gere um salt
+    # único com: python -c "import os,base64;print(base64.b64encode(os.urandom(16)).decode())"
+    FERNET_SALT: str = "lanez-token-encryption-salt"
+
     # Microsoft Entra ID — com valor padrão
     MICROSOFT_REDIRECT_URI: str = "http://localhost:8000/auth/callback"
 

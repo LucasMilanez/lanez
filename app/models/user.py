@@ -21,7 +21,7 @@ from app.database import Base
 # Derivação de chave Fernet a partir de SECRET_KEY via PBKDF2
 # ---------------------------------------------------------------------------
 
-_SALT = b"lanez-token-encryption-salt"
+_SALT = settings.FERNET_SALT.encode("utf-8")
 
 
 def _derive_fernet_key(secret: str) -> bytes:

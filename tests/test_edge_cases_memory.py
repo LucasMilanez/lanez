@@ -375,7 +375,7 @@ async def test_mcp_list_tools_returns_9():
         body = resp.json()
         tools = body["result"]["tools"]
 
-        assert len(tools) == 9, f"Expected 9 tools, got {len(tools)}"
+        assert len(tools) == 10, f"Expected 10 tools, got {len(tools)}"
 
         tool_names = {t["name"] for t in tools}
         assert "save_memory" in tool_names

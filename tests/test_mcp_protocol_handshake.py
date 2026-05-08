@@ -257,7 +257,7 @@ async def test_tools_list_returns_9_tools():
         assert resp.status_code == 200
         body = resp.json()
         tools = body["result"]["tools"]
-        assert len(tools) == 9
+        assert len(tools) == 10
 
         # Each tool has required fields
         for tool in tools:

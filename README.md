@@ -97,6 +97,45 @@ See [`.env.example`](.env.example) for all required variables. Key ones:
 | `ANTHROPIC_API_KEY` | For briefing generation |
 | `DATABASE_URL` | PostgreSQL connection string |
 | `REDIS_URL` | Redis connection string |
+| `ALLOWED_EMAILS` | Comma-separated list of emails allowed to log in (defense-in-depth). Leave empty only in dev. |
+
+## Security
+
+Lanez is a **self-hosted single-user server**. It is not designed for
+multi-tenant SaaS deployments. Before exposing it to the internet:
+
+- **OAuth flow**: Authorization Code + PKCE (S256) via Microsoft Entra ID.
+  Read-only scopes (`Calendars.Read`, `Files.Read`, `Mail.Read`,
+  `Notes.Read`, `Sites.Read.All`, `User.Read`, `offline_access`).
+- **Token storage**: Microsoft access and refresh tokens are encrypted at
+  rest using **Fernet (AES-128-CBC + HMAC-SHA256)**. The Fernet key is
+  derived from `SECRET_KEY` via **PBKDF2-HMAC-SHA256 with 480 000
+  iterations** and `FERNET_SALT`.
+- **Sessions**: Internal JWT (HS256, 7-day expiry) delivered via
+  `httpOnly + samesite=lax + secure` cookie. Bearer token fallback for
+  MCP clients.
+- **Allowlist**: `ALLOWED_EMAILS` restricts which accounts can complete
+  OAuth even if the Azure app is misconfigured as multi-tenant.
+- **CSRF**: Frontend sends `X-Requested-With: XMLHttpRequest` on every
+  mutation; the backend rejects cookie-authenticated mutations without
+  it.
+- **Rate limiting**: Per-user limits on endpoints that consume paid APIs
+  (Anthropic, Groq) via `slowapi`.
+- **Audit log**: Every MCP call, auth event, and webhook is recorded
+  with latency and success flag.
+
+### Key rotation caveat
+
+`SECRET_KEY` and `FERNET_SALT` derive the encryption key for tokens
+stored in the database. **Rotating either invalidates all existing
+tokens** — every user must re-authenticate via the OAuth flow. Generate
+strong values on first deploy and keep them stable. A zero-downtime
+rotation procedure is not currently implemented.
+
+### Reporting vulnerabilities
+
+Open a private security advisory on GitHub or email the maintainer
+directly. Do not open a public issue for undisclosed vulnerabilities.
 
 ## MCP Client Setup
 
@@ -111,13 +150,11 @@ Lanez implements the [Model Context Protocol](https://modelcontextprotocol.io/) 
 {
   "mcpServers": {
     "lanez": {
-      "command": "npx",
+      "command": "mcp-remote",
       "args": [
-        "-y",
-        "mcp-remote",
-        "https://your-deployment.fly.dev/mcp",
+        "https://lanez-app.fly.dev/mcp",
         "--header",
-        "Authorization: Bearer YOUR_TOKEN"
+        "Authorization: Bearer <Token>"
       ]
     }
   }
@@ -136,7 +173,8 @@ See [docs/mcp-client-setup.md](docs/mcp-client-setup.md) for detailed instructio
 | `/mcp` | GET | List available tools |
 | `/auth/microsoft` | GET | Start OAuth flow |
 | `/auth/callback` | GET | OAuth callback |
-| `/healthz` | GET | Health check |
+| `/healthz` | GET | Liveness probe |
+| `/readyz` | GET | Readiness probe (DB + Redis) |
 
 ## Deployment
 
