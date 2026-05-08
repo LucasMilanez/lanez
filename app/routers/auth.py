@@ -12,7 +12,7 @@ import os
 import secrets
 from base64 import urlsafe_b64encode
 from datetime import datetime, timedelta, timezone
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
@@ -69,8 +69,6 @@ def _is_allowed_return_url(url: str) -> bool:
     Compara scheme + host + port (se presente). Rejeita subdomínios e
     sufixos maliciosos (ex: https://lanez.vercel.app.evil.com).
     """
-    from urllib.parse import urlparse
-
     parsed = urlparse(url)
     url_origin = f"{parsed.scheme}://{parsed.netloc}"
 

@@ -29,7 +29,6 @@ from app.database import get_db, get_redis
 from app.dependencies import get_current_user
 from app.models.briefing import Briefing
 from app.models.user import User
-from app.rate_limit import limiter
 from app.services.audit import AuditEventType, log_event
 from app.services.graph import GraphService
 from app.services.searxng import SearXNGService
