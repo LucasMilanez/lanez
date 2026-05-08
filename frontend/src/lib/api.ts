@@ -15,11 +15,20 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Header utilizado como defesa em profundidade contra CSRF.
+ * Navegação direta (click em link, form submit cross-site) não envia
+ * este header — apenas requests XHR/fetch explícitos do nosso código.
+ * O backend pode ser configurado para exigi-lo em rotas de mutação.
+ */
+const CSRF_HEADER = { "X-Requested-With": "XMLHttpRequest" } as const;
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...CSRF_HEADER,
       ...init?.headers,
     },
     credentials: "include",
@@ -40,13 +49,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(response.status, detail);
   }
 
+  // DELETE / métodos sem body podem retornar 200 vazio ou sem JSON
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return undefined as T;
+  }
+
   return response.json() as Promise<T>;
 }
 
 async function requestMultipart<T>(path: string, formData: FormData): Promise<T> {
   const response = await fetch(path, {
     method: "POST",
-    body: formData,  // NÃO setar Content-Type — fetch + FormData fazem com boundary correto
+    body: formData, // NÃO setar Content-Type — fetch + FormData fazem com boundary correto
+    headers: { ...CSRF_HEADER },
     credentials: "include",
   });
 
@@ -75,6 +91,12 @@ export const api = {
       method: "POST",
       body: body ? JSON.stringify(body) : undefined,
     }),
+  patch: <T>(path: string, body?: unknown) =>
+    request<T>(path, {
+      method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
   postMultipart: <T>(path: string, formData: FormData) =>
     requestMultipart<T>(path, formData),
 };

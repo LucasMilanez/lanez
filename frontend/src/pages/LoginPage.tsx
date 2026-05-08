@@ -128,6 +128,12 @@ function TelemetryHUD() {
           <div className="flex items-center gap-2 font-mono text-[10.5px] tracking-[0.16em] text-[#7A8290]">
             <span className="h-1.5 w-1.5 bg-[#22D3EE]" />
             LIVE.TELEMETRY
+            <span
+              className="ml-1 px-1.5 py-px rounded-sm border border-[#FACC15]/40 bg-[#FACC15]/[0.08] text-[#FACC15] text-[8.5px] tracking-[0.18em]"
+              title="Illustrative data. Not real user telemetry."
+            >
+              DEMO
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-[#FF7849]/80" />
@@ -205,9 +211,9 @@ function TelemetryHUD() {
         {/* Stats strip */}
         <div className="border-t border-[#1B2029] px-5 py-4 grid grid-cols-3 gap-3">
           {[
-            { label: "TOOLS",   value: "09",   cls: "text-[#22D3EE]" },
-            { label: "P50",     value: "1.4s",  cls: "text-[#E8ECEF]" },
-            { label: "REQ/MIN", value: "42",    cls: "text-[#E8ECEF]" },
+            { label: "TOOLS",    value: "09",   cls: "text-[#22D3EE]" },
+            { label: "SERVICES", value: "04",   cls: "text-[#E8ECEF]" },
+            { label: "PROTOCOL", value: "MCP",  cls: "text-[#E8ECEF]" },
           ].map(({ label, value, cls }) => (
             <div key={label}>
               <div className="font-mono text-[9px] tracking-[0.16em] text-[#4F5664]">{label}</div>
@@ -236,9 +242,9 @@ function TelemetryHUD() {
 
       {/* HUD info strip */}
       <div className="mt-2 flex items-center justify-between font-mono text-[9.5px] tracking-[0.18em] text-[#4F5664]">
-        <span>FRAME 0001 / 9999</span>
-        <span>HEAP 412.3 MiB / 2.0 GiB</span>
-        <span>NET ↑ 14kbps ↓ 32kbps</span>
+        <span>TRANSPORT: STREAMABLE-HTTP</span>
+        <span>EMBED: ALL-MINILM-L6-V2</span>
+        <span>LICENSE: APACHE-2.0</span>
       </div>
     </div>
   );
@@ -246,8 +252,8 @@ function TelemetryHUD() {
 
 function MarqueeStrip() {
   const items = [
-    "9 MCP TOOLS", "< 2s P50 LATENCY", "4 M365 SERVICES",
-    "$1/MO SELF-HOSTED", "142 DAYS UPTIME", "SPEC MCP 2025-06-18",
+    "9 MCP TOOLS", "4 M365 SERVICES", "OPEN SOURCE",
+    "SELF-HOSTED", "OAUTH 2.0 + PKCE", "SPEC MCP 2025-06-18",
   ];
   const rendered = items.flatMap((item, i) => [
     <span key={`item-${i}`}><span className="text-[#22D3EE]">●</span> {item}</span>,
@@ -270,19 +276,19 @@ function ModulesSection() {
       num: "01", tag: "RETRIEVE", icon: <Search className="h-5 w-5" />,
       title: "Hybrid search",
       desc: "BM25 over Postgres × pgvector embeddings. One round-trip surfaces the right email, note or file — no query fan-out.",
-      stats: [{ k: "recall@5", v: "0.94" }, { k: "latency.p50", v: "410ms" }, { k: "corpus", v: "38.2k docs" }],
+      stats: [{ k: "index", v: "bm25 + pgvector" }, { k: "model", v: "all-MiniLM-L6-v2" }, { k: "dims", v: "384" }],
     },
     {
       num: "02", tag: "SCHEDULE", icon: <Calendar className="h-5 w-5" />,
       title: "Event briefings",
       desc: "Every meeting on your calendar gets a markdown briefing 15 min before — participants, prior threads, decisions.",
-      stats: [{ k: "webhooks", v: "3 active" }, { k: "briefings.30d", v: "126" }, { k: "tts.engine", v: "groq.whisper" }],
+      stats: [{ k: "trigger", v: "ms.graph.webhook" }, { k: "lead_time", v: "15 min" }, { k: "model", v: "claude haiku 4.5" }],
     },
     {
       num: "03", tag: "RECALL", icon: <Brain className="h-5 w-5" />,
       title: "Persistent memory",
       desc: "Notes the agent shouldn't forget — preferences, glossaries, recurring decisions. Tagged, embedded, recallable.",
-      stats: [{ k: "memories", v: "204" }, { k: "tags.unique", v: "37" }, { k: "recall.p50", v: "280ms" }],
+      stats: [{ k: "store", v: "pgvector" }, { k: "embed", v: "all-MiniLM-L6-v2" }, { k: "scope", v: "user-isolated" }],
     },
   ] as const;
 
@@ -600,10 +606,9 @@ function StatusBar() {
           <span className="hidden md:inline">apache 2.0</span>
         </div>
         <div className="flex items-center gap-5">
-          <span className="hidden md:inline">↑ 14kbps</span>
-          <span className="hidden md:inline">↓ 32kbps</span>
-          <span className="hidden sm:inline">PT</span>
-          <span>00:00 UTC</span>
+          <span className="hidden md:inline">MCP 2025-06-18</span>
+          <span className="hidden sm:inline">apache 2.0</span>
+          <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[#22D3EE] transition-colors">github ↗</a>
         </div>
       </div>
     </footer>
@@ -641,7 +646,7 @@ export function LoginPage() {
           <div className="col-span-12 lg:col-span-7 relative">
             <div className="flex items-center justify-between mb-7">
               <span className="tag-mono"><span className="swatch" /> NODE 001 / PORTFOLIO_PIECE</span>
-              <span className="font-mono text-[10px] text-[#4F5664] hidden sm:inline">LAT 38.7223 · LON -9.1393</span>
+              <span className="font-mono text-[10px] text-[#4F5664] hidden sm:inline">SPEC MCP 2025-06-18</span>
             </div>
 
             <h1 className="h-display text-[64px] sm:text-[88px] lg:text-[108px] text-[#E8ECEF]">

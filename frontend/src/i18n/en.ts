@@ -15,6 +15,10 @@ export const en = {
     noData: "No data available.",
     connected: "Connected",
     expired: "Expired",
+    pageOf: "Page {current} of {total}",
+    reveal: "Reveal",
+    hide: "Hide",
+    demo: "demo",
   },
 
   // Navigation
@@ -148,6 +152,7 @@ export const en = {
     errorCreating: "Error creating memory",
     errorUpdating: "Error updating memory",
     errorDeleting: "Error deleting memory",
+    confirmDelete: "Delete this memory? This action cannot be undone.",
   },
 
   // Briefings
@@ -157,8 +162,13 @@ export const en = {
     searchPlaceholder: "Search by subject...",
     notFound: "Briefing not found",
     generated: "Generated",
+    generatedAt: "Generated on {date}",
     attendees: "Attendees",
     tokens: "tokens",
+    technicalDetails: "Technical details",
+    inputTokens: "{count} input tokens",
+    outputTokens: "{count} output",
+    model: "model {name}",
   },
 
   // Audit page
@@ -220,6 +230,21 @@ export const en = {
     copyConfig: "Copy config",
     configCopied: "Config copied!",
     copyFailed: "Failed to copy. Select manually.",
+    generatingToken: "Generating...",
+    generateNewToken: "Generate new token",
+    tokenGenerated: "Token generated. Copy and paste into your MCP client.",
+    renewSuccess: "Token renewed successfully.",
+    renewError: "Error renewing token.",
+    mcpPasteInstruction: "Add this block to your claude_desktop_config.json:",
+    howToUse: "How to use:",
+    openConfigFile: "Open the Claude Desktop config file:",
+    onWindows: "(Windows)",
+    onMacOS: "(macOS)",
+    addMcpServersBlock: 'Add the "mcpServers" block above to your existing JSON',
+    saveAndRestart: "Save and fully restart Claude Desktop",
+    toolsShouldAppear: "9 Lanez tools should appear in the tools menu",
+    tokenWarning: "This token grants full access to your MCP account for 7 days. Do not share in screenshots.",
+    mcpTokenGenerated: "MCP token (keep secret)",
   },
 
   // TTS

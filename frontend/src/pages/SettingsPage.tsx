@@ -3,19 +3,27 @@ import { ptBR, enUS } from "date-fns/locale";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, Key, Check } from "lucide-react";
+import { Copy, Key, Check, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useStatus } from "@/hooks/useStatus";
 import { useAuth } from "@/auth/AuthContext";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { useState } from "react";
 import { useI18n } from "@/i18n/I18nContext";
 
+function maskToken(token: string): string {
+  if (token.length <= 8) return "•".repeat(token.length);
+  return `${"•".repeat(20)}${token.slice(-4)}`;
+}
+
 export function SettingsPage() {
   const { data, isLoading, error, refetch } = useStatus();
   const { user } = useAuth();
+  const qc = useQueryClient();
   const [mcpToken, setMcpToken] = useState<string | null>(null);
+  const [tokenRevealed, setTokenRevealed] = useState(false);
   const [loadingToken, setLoadingToken] = useState(false);
   const [copied, setCopied] = useState(false);
   const { t, locale } = useI18n();
@@ -24,10 +32,11 @@ export function SettingsPage() {
   const handleRefreshToken = async () => {
     try {
       await api.post("/auth/refresh");
-      toast.success("Token renovado com sucesso.");
-      void refetch();
-    } catch {
-      toast.error("Erro ao renovar token.");
+      await qc.invalidateQueries({ queryKey: ["status"] });
+      toast.success(t.settingsPage.renewSuccess);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.detail : t.settingsPage.renewError;
+      toast.error(msg);
     }
   };
 
@@ -36,9 +45,11 @@ export function SettingsPage() {
     try {
       const resp = await api.get<{ access_token: string }>("/auth/token");
       setMcpToken(resp.access_token);
-      toast.success("Token gerado. Copie e cole no seu cliente MCP.");
-    } catch {
-      toast.error("Erro ao gerar token MCP.");
+      setTokenRevealed(false);
+      toast.success(t.settingsPage.tokenGenerated);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.detail : t.settingsPage.renewError;
+      toast.error(msg);
     } finally {
       setLoadingToken(false);
     }
@@ -79,7 +90,8 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="shadow-soft">
+        {/* Read-only card — styled distinctly from interactive cards */}
+        <Card className="shadow-soft opacity-95">
           <CardHeader className="pb-2">
             <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               {t.settingsPage.briefingWindow}
@@ -158,9 +170,7 @@ export function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {t.settingsPage.mcpConfigDesc}
-            {" "}
-            {t.settingsPage.tokenValid7Days}
+            {t.settingsPage.mcpConfigDesc} {t.settingsPage.tokenValid7Days}
           </p>
 
           {!mcpToken ? (
@@ -171,13 +181,47 @@ export function SettingsPage() {
               disabled={loadingToken}
             >
               <Key className="h-3.5 w-3.5 mr-1.5" />
-              {loadingToken ? "Gerando..." : t.settingsPage.generateMcpConfig}
+              {loadingToken ? t.settingsPage.generatingToken : t.settingsPage.generateMcpConfig}
             </Button>
           ) : (
             <div className="space-y-4">
+              {/* Security warning */}
+              <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/[0.04] p-3">
+                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {t.settingsPage.tokenWarning}
+                </p>
+              </div>
+
+              {/* Masked token display */}
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2">
-                  Adicione este bloco ao seu <code>claude_desktop_config.json</code>:
+                  {t.settingsPage.mcpTokenGenerated}
+                </p>
+                <div className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2">
+                  <code className="flex-1 font-mono text-xs break-all">
+                    {tokenRevealed ? mcpToken : maskToken(mcpToken)}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={() => setTokenRevealed((v) => !v)}
+                    title={tokenRevealed ? t.common.hide : t.common.reveal}
+                    aria-label={tokenRevealed ? t.common.hide : t.common.reveal}
+                  >
+                    {tokenRevealed ? (
+                      <EyeOff className="h-3.5 w-3.5" />
+                    ) : (
+                      <Eye className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">
+                  {t.settingsPage.mcpPasteInstruction}
                 </p>
                 <div className="relative">
                   <pre className="bg-muted rounded-md p-3 pr-10 text-xs font-mono whitespace-pre overflow-x-auto">
@@ -185,9 +229,9 @@ export function SettingsPage() {
   "lanez": {
     "command": "mcp-remote",
     "args": [
-      "https://lanez-app.fly.dev/mcp",
+      "${mcpBaseUrl}",
       "--header",
-      "Authorization: Bearer ${mcpToken}"
+      "Authorization: Bearer ${tokenRevealed ? mcpToken : "<token>"}"
     ]
   }
 }`}
@@ -210,18 +254,20 @@ export function SettingsPage() {
               </div>
 
               <div className="text-xs text-muted-foreground space-y-2 border-t pt-3">
-                <p className="font-medium text-foreground">Como usar:</p>
+                <p className="font-medium text-foreground">{t.settingsPage.howToUse}</p>
                 <ol className="list-decimal list-inside space-y-1">
                   <li>
-                    Abra o arquivo de config do Claude Desktop:
+                    {t.settingsPage.openConfigFile}
                     <br />
-                    <code className="text-[10px]">%APPDATA%\Claude\claude_desktop_config.json</code> (Windows)
+                    <code className="text-[10px]">%APPDATA%\Claude\claude_desktop_config.json</code>{" "}
+                    {t.settingsPage.onWindows}
                     <br />
-                    <code className="text-[10px]">~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS)
+                    <code className="text-[10px]">~/Library/Application Support/Claude/claude_desktop_config.json</code>{" "}
+                    {t.settingsPage.onMacOS}
                   </li>
-                  <li>Adicione o bloco <code>"mcpServers"</code> acima ao JSON existente</li>
-                  <li>Salve e reinicie o Claude Desktop completamente</li>
-                  <li>9 ferramentas Lanez devem aparecer no menu de tools</li>
+                  <li>{t.settingsPage.addMcpServersBlock}</li>
+                  <li>{t.settingsPage.saveAndRestart}</li>
+                  <li>{t.settingsPage.toolsShouldAppear}</li>
                 </ol>
               </div>
 
@@ -244,7 +290,7 @@ export function SettingsPage() {
                   onClick={() => void handleGenerateMcpToken()}
                   disabled={loadingToken}
                 >
-                  Gerar novo token
+                  {t.settingsPage.generateNewToken}
                 </Button>
               </div>
             </div>

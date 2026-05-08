@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ErrorState } from "@/components/ErrorState";
 import { useI18n, interpolate } from "@/i18n/I18nContext";
+import { api } from "@/lib/api";
 
 interface Memory {
   id: string;
@@ -20,41 +21,15 @@ interface Memory {
   created_at: string;
 }
 
-async function fetchMemories(): Promise<Memory[]> {
-  const res = await fetch("/memories", { credentials: "include" });
-  if (!res.ok) throw new Error("Erro ao carregar memórias");
-  return res.json();
-}
+const fetchMemories = () => api.get<Memory[]>("/memories");
 
-async function createMemory(data: { content: string; tags: string[] }): Promise<Memory> {
-  const res = await fetch("/memories", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Erro ao criar memória");
-  return res.json();
-}
+const createMemory = (data: { content: string; tags: string[] }) =>
+  api.post<Memory>("/memories", data);
 
-async function updateMemory(id: string, data: { content?: string; tags?: string[] }): Promise<Memory> {
-  const res = await fetch(`/memories/${id}`, {
-    method: "PATCH",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Erro ao actualizar memória");
-  return res.json();
-}
+const updateMemory = (id: string, data: { content?: string; tags?: string[] }) =>
+  api.patch<Memory>(`/memories/${id}`, data);
 
-async function deleteMemory(id: string): Promise<void> {
-  const res = await fetch(`/memories/${id}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Erro ao eliminar memória");
-}
+const deleteMemory = (id: string) => api.del<void>(`/memories/${id}`);
 
 function TagsInput({
   value,
@@ -139,6 +114,12 @@ function MemoryRow({ memory, onSaved }: { memory: Memory; onSaved: () => void })
     onError: () => toast.error(t.memoriesPage.errorDelete),
   });
 
+  function handleDelete() {
+    if (window.confirm(t.memoriesPage.confirmDelete)) {
+      remove.mutate();
+    }
+  }
+
   function handleCancel() {
     setContent(memory.content);
     setTags(memory.tags);
@@ -206,7 +187,7 @@ function MemoryRow({ memory, onSaved }: { memory: Memory; onSaved: () => void })
           variant="ghost"
           size="icon"
           className="h-8 w-8 hover:text-destructive hover:bg-destructive/10"
-          onClick={() => remove.mutate()}
+          onClick={handleDelete}
           disabled={remove.isPending}
           aria-label={t.common.delete}
         >

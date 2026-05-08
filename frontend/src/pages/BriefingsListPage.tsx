@@ -7,7 +7,7 @@ import { BriefingCard } from "@/components/BriefingCard";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
-import { useI18n } from "@/i18n/I18nContext";
+import { useI18n, interpolate } from "@/i18n/I18nContext";
 
 export function BriefingsListPage() {
   const [page, setPage] = useState(1);
@@ -66,7 +66,7 @@ export function BriefingsListPage() {
               {t.auditPage.previous}
             </Button>
             <span className="text-sm text-muted-foreground">
-              Página {page} de {totalPages}
+              {interpolate(t.common.pageOf, { current: page, total: totalPages })}
             </span>
             <Button
               variant="outline"

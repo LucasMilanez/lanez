@@ -17,6 +17,10 @@ export const pt: Translations = {
     noData: "Sem dados disponíveis.",
     connected: "Conectado",
     expired: "Expirado",
+    pageOf: "Página {current} de {total}",
+    reveal: "Mostrar",
+    hide: "Ocultar",
+    demo: "demo",
   },
 
   // Navigation
@@ -150,6 +154,7 @@ export const pt: Translations = {
     errorCreating: "Erro ao criar memória",
     errorUpdating: "Erro ao atualizar memória",
     errorDeleting: "Erro ao eliminar memória",
+    confirmDelete: "Eliminar esta memória? Esta ação não pode ser desfeita.",
   },
 
   // Briefings
@@ -159,8 +164,13 @@ export const pt: Translations = {
     searchPlaceholder: "Buscar por assunto...",
     notFound: "Briefing não encontrado",
     generated: "Gerado",
+    generatedAt: "Gerado em {date}",
     attendees: "Participantes",
     tokens: "tokens",
+    technicalDetails: "Detalhes técnicos",
+    inputTokens: "{count} tokens de entrada",
+    outputTokens: "{count} de saída",
+    model: "modelo {name}",
   },
 
   // Audit page
@@ -222,6 +232,21 @@ export const pt: Translations = {
     copyConfig: "Copiar configuração",
     configCopied: "Configuração copiada!",
     copyFailed: "Falha ao copiar. Selecione manualmente.",
+    generatingToken: "A gerar...",
+    generateNewToken: "Gerar novo token",
+    tokenGenerated: "Token gerado. Copie e cole no seu cliente MCP.",
+    renewSuccess: "Token renovado com sucesso.",
+    renewError: "Erro ao renovar token.",
+    mcpPasteInstruction: "Adicione este bloco ao seu claude_desktop_config.json:",
+    howToUse: "Como usar:",
+    openConfigFile: "Abra o ficheiro de configuração do Claude Desktop:",
+    onWindows: "(Windows)",
+    onMacOS: "(macOS)",
+    addMcpServersBlock: 'Adicione o bloco "mcpServers" acima ao JSON existente',
+    saveAndRestart: "Salve e reinicie o Claude Desktop completamente",
+    toolsShouldAppear: "9 ferramentas Lanez devem aparecer no menu de tools",
+    tokenWarning: "Este token dá acesso total à sua conta MCP por 7 dias. Não partilhe em capturas de ecrã.",
+    mcpTokenGenerated: "Token MCP (manter secreto)",
   },
 
   // TTS

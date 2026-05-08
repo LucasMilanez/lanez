@@ -1,5 +1,7 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { enUS } from "date-fns/locale";
@@ -26,6 +28,7 @@ import { useStatus, type StatusData } from "@/hooks/useStatus";
 import { useI18n, interpolate } from "@/i18n/I18nContext";
 import { DonutChart } from "@/components/DonutChart";
 import { ErrorState } from "@/components/ErrorState";
+import { api, ApiError } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -52,11 +55,23 @@ function getServiceIcon(service: string) {
 
 const AlertBanner = memo(function AlertBanner({ data }: { data: StatusData }) {
   const { t, locale } = useI18n();
+  const qc = useQueryClient();
   const dateLocale = locale === "pt" ? ptBR : enUS;
   const tokenExpired = data.token_expires_in_seconds < 0;
   const tokenExpiringSoon = !tokenExpired && data.token_expires_in_seconds < 7200;
 
   if (!tokenExpired && !tokenExpiringSoon) return null;
+
+  const handleRenew = async () => {
+    try {
+      await api.post("/auth/refresh");
+      await qc.invalidateQueries({ queryKey: ["status"] });
+      toast.success(t.settingsPage.renewSuccess);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.detail : t.settingsPage.renewError;
+      toast.error(message);
+    }
+  };
 
   return (
     <div
@@ -82,10 +97,9 @@ const AlertBanner = memo(function AlertBanner({ data }: { data: StatusData }) {
         </p>
       </div>
       <button
+        type="button"
         className="shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium bg-destructive/[0.12] text-destructive border border-destructive/30 hover:bg-destructive/[0.18] transition-colors"
-        onClick={() => {
-          window.location.href = "/auth/refresh";
-        }}
+        onClick={() => void handleRenew()}
       >
         <RefreshCw className="h-3 w-3" />
         {t.dashboard.renew}
@@ -221,8 +235,13 @@ const EmbeddingsCard = memo(function EmbeddingsCard({
   data: StatusData["embeddings_by_service"];
 }) {
   const { t } = useI18n();
+  const qc = useQueryClient();
   const maxCount = data.length > 0 ? Math.max(...data.map((e) => e.count)) : 0;
   const totalCount = data.reduce((sum, e) => sum + e.count, 0);
+
+  const handleRefresh = () => {
+    void qc.invalidateQueries({ queryKey: ["status"] });
+  };
 
   return (
     <article className="lg:col-span-4 rounded-xl border border-border bg-card/60 transition-all duration-200 hover:border-muted-foreground/20 hover:-translate-y-px">
@@ -236,6 +255,8 @@ const EmbeddingsCard = memo(function EmbeddingsCard({
           </div>
         </div>
         <button
+          type="button"
+          onClick={handleRefresh}
           className="text-muted-foreground hover:text-foreground transition-colors"
           title="Refresh"
           aria-label="Refresh embeddings"

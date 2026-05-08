@@ -12,7 +12,7 @@ import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { ApiError } from "@/lib/api";
-import { useI18n } from "@/i18n/I18nContext";
+import { useI18n, interpolate } from "@/i18n/I18nContext";
 
 export function BriefingDetailPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -73,16 +73,37 @@ export function BriefingDetailPage() {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground tabular-nums">
-        Gerado em{" "}
-        {format(new Date(data.generated_at), "dd/MM/yyyy 'às' HH:mm", {
-          locale: dateLocale,
-        })}
-        {" · "}
-        {data.input_tokens + data.cache_read_tokens + data.cache_write_tokens} tokens
-        entrada · {data.output_tokens} saída · modelo{" "}
-        <span className="font-mono">{data.model_used}</span>
-      </p>
+      <details className="group rounded-md border border-border bg-card/40 overflow-hidden">
+        <summary className="cursor-pointer select-none px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors list-none flex items-center justify-between">
+          <span>{t.briefingsPage.technicalDetails}</span>
+          <span className="text-[10px] text-muted-foreground/70 transition-transform group-open:rotate-90">▸</span>
+        </summary>
+        <div className="px-4 pb-3 pt-1 text-xs text-muted-foreground tabular-nums space-y-1">
+          <p>
+            {interpolate(t.briefingsPage.generatedAt, {
+              date: format(new Date(data.generated_at), "dd/MM/yyyy 'às' HH:mm", {
+                locale: dateLocale,
+              }),
+            })}
+          </p>
+          <p>
+            {interpolate(t.briefingsPage.inputTokens, {
+              count: (
+                data.input_tokens +
+                data.cache_read_tokens +
+                data.cache_write_tokens
+              ).toLocaleString(),
+            })}
+            {" · "}
+            {interpolate(t.briefingsPage.outputTokens, {
+              count: data.output_tokens.toLocaleString(),
+            })}
+            {" · "}
+            {interpolate(t.briefingsPage.model, { name: "" })}
+            <span className="font-mono">{data.model_used}</span>
+          </p>
+        </div>
+      </details>
 
       <Separator />
 

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { History } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { cn } from "@/lib/utils";
-import { useI18n } from "@/i18n/I18nContext";
+import { useI18n, interpolate } from "@/i18n/I18nContext";
 import type { AuditLogItem } from "@/hooks/useAuditLog";
 
 const EVENT_TYPES = [
@@ -54,19 +55,36 @@ function summarizeEventData(item: AuditLogItem): string {
 }
 
 export function AuditPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selected, setSelected] = useState<AuditLogItem | null>(null);
-  const [activeTypes, setActiveTypes] = useState<string[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t, locale } = useI18n();
+
+  // URL-driven state
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const urlSearch = searchParams.get("q") ?? "";
+  const activeTypes = useMemo(() => searchParams.getAll("event_type"), [searchParams]);
+
+  // Local search state with debounce
+  const [search, setSearch] = useState(urlSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(urlSearch);
+  const [selected, setSelected] = useState<AuditLogItem | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
-      setPage(1);
+      // Update URL when search changes, reset page
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (search) {
+          next.set("q", search);
+        } else {
+          next.delete("q");
+        }
+        next.delete("page");
+        return next;
+      });
     }, 300);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   const { data, isLoading, error, refetch } = useAuditLog({
@@ -78,12 +96,37 @@ export function AuditPage() {
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / pageSize)) : 1;
 
-  function toggleType(type: string) {
-    setActiveTypes((prev) =>
-      prev.includes(type) ? prev.filter((t2) => t2 !== type) : [...prev, type]
-    );
-    setPage(1);
-  }
+  const setPage = (newPage: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (newPage <= 1) {
+        next.delete("page");
+      } else {
+        next.set("page", String(newPage));
+      }
+      return next;
+    });
+  };
+
+  const toggleType = (type: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      const currentTypes = next.getAll("event_type");
+      next.delete("event_type");
+      next.delete("page");
+      if (currentTypes.includes(type)) {
+        for (const existing of currentTypes.filter((x) => x !== type)) {
+          next.append("event_type", existing);
+        }
+      } else {
+        for (const existing of currentTypes) {
+          next.append("event_type", existing);
+        }
+        next.append("event_type", type);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -175,17 +218,17 @@ export function AuditPage() {
             <Button
               variant="outline"
               disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
+              onClick={() => setPage(page - 1)}
             >
               {t.auditPage.previous}
             </Button>
             <span className="text-sm text-muted-foreground">
-              Página {page} de {totalPages}
+              {interpolate(t.common.pageOf, { current: page, total: totalPages })}
             </span>
             <Button
               variant="outline"
               disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => setPage(page + 1)}
             >
               {t.auditPage.next}
             </Button>
