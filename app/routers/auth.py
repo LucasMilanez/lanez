@@ -69,6 +69,19 @@ def _is_allowed_return_url(url: str) -> bool:
     return any(url.startswith(origin) for origin in allowed)
 
 
+def _is_email_allowed(email: str) -> bool:
+    """Valida o email contra ALLOWED_EMAILS (allowlist de login).
+
+    Retorna True se a allowlist estiver vazia (sem restrição, fallback de dev)
+    ou se o email estiver na lista (case-insensitive).
+    """
+    raw = settings.ALLOWED_EMAILS.strip()
+    if not raw:
+        return True
+    allowed = {e.strip().lower() for e in raw.split(",") if e.strip()}
+    return email.strip().lower() in allowed
+
+
 def _generate_code_verifier() -> str:
     """Gera code_verifier de 32 bytes aleatórios em base64url sem padding."""
     return urlsafe_b64encode(os.urandom(32)).rstrip(b"=").decode("ascii")
@@ -242,6 +255,19 @@ async def auth_callback(
     email = me_data.get("mail") or me_data.get("userPrincipalName")
     if not email:
         raise HTTPException(status_code=400, detail="Email não encontrado no perfil do usuário")
+
+    # Allowlist check — defesa em profundidade contra misconfiguration do
+    # Azure (multi-tenant, common endpoint, etc). Rejeita antes de qualquer
+    # side-effect no banco.
+    if not _is_email_allowed(email):
+        logger.warning(
+            "Login rejeitado: email %s não está em ALLOWED_EMAILS",
+            email,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Este email não está autorizado a acessar este servidor.",
+        )
 
     # 5. Criar ou atualizar User (upsert por email)
     stmt = select(User).where(User.email == email)

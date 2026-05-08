@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     WEBHOOK_CLIENT_STATE: str
 
+    # Allowlist de emails autorizados a fazer login (defesa em profundidade
+    # contra erros de configuração no Azure Portal — multi-tenant, common, etc).
+    # Comma-separated, case-insensitive. Vazio = sem restrição (qualquer
+    # email que passar no OAuth entra). Recomendado em produção single-user.
+    # Exemplo: ALLOWED_EMAILS="lucas@lanez.pt,admin@example.com"
+    ALLOWED_EMAILS: str = ""
+
     # Microsoft Entra ID — com valor padrão
     MICROSOFT_REDIRECT_URI: str = "http://localhost:8000/auth/callback"
 
