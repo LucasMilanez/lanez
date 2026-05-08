@@ -11,7 +11,7 @@ Any tagged release older than the current `main` is considered unsupported.
 
 **Please do not open a public GitHub issue for security reports.**
 
-Use GitHub's [private security advisory](https://github.com/LucasMilanez/lanez/security/advisories/new) to report:
+Use GitHub's [private security advisory](https://github.com/LucasMilanez/Lanez/security/advisories/new) to report:
 
 - The affected component (MCP router, auth, Graph client, etc.)
 - Steps to reproduce, ideally with a minimal proof of concept

@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Please do not report **security vulnerabilities** here — use
-        GitHub's [private security advisory](https://github.com/LucasMilanez/lanez/security/advisories/new)
+        GitHub's [private security advisory](https://github.com/LucasMilanez/Lanez/security/advisories/new)
         instead. See [SECURITY.md](../SECURITY.md) for details.
 
   - type: input

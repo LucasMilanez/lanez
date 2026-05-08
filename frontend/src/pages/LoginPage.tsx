@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 // ─── constants ───────────────────────────────────────────────────────────────
 
-const GITHUB_URL = "https://github.com/LucasMilanez/lanez";
+const GITHUB_URL = "https://github.com/LucasMilanez/Lanez";
 
 function GithubIcon({ className }: { className?: string }) {
   return (

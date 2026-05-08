@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/LucasMilanez/lanez/security/advisories/new
+    url: https://github.com/LucasMilanez/Lanez/security/advisories/new
     about: Report a vulnerability privately via GitHub security advisories. Do not open a public issue.
   - name: Question / usage help
-    url: https://github.com/LucasMilanez/lanez/discussions
+    url: https://github.com/LucasMilanez/Lanez/discussions
     about: Ask questions or share setup tips in Discussions.
