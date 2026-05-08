@@ -86,8 +86,6 @@ async def get_status(
     recent_briefings = (await db.execute(recent_briefings_stmt)).scalars().all()
 
     # Tokens últimos 30 dias — somatório com coalesce para evitar NULL.
-    # .first() + fallback defensivo: mesmo que a engine devolva 0 rows, o
-    # endpoint não quebra.
     token_sum_stmt = select(
         func.coalesce(func.sum(Briefing.input_tokens), 0),
         func.coalesce(func.sum(Briefing.output_tokens), 0),
@@ -97,11 +95,11 @@ async def get_status(
         Briefing.user_id == user.id,
         Briefing.generated_at >= thirty_days_ago,
     )
-    token_row = (await db.execute(token_sum_stmt)).first()
-    if token_row is None:
-        in_t, out_t, cache_r, cache_w = 0, 0, 0, 0
-    else:
+    try:
+        token_row = (await db.execute(token_sum_stmt)).one()
         in_t, out_t, cache_r, cache_w = token_row
+    except Exception:
+        in_t, out_t, cache_r, cache_w = 0, 0, 0, 0
 
     # Atividade MCP últimos 30 dias — contagem de chamadas do audit log
     mcp_total_stmt = (

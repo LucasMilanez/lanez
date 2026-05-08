@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
@@ -14,7 +14,6 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.memory import Memory
 from app.models.user import User
-from app.rate_limit import limiter
 from app.schemas.memory import MemoryCreateRequest, MemoryResponse
 from app.services.embeddings import generate_embedding
 from app.services.memory import save_memory
@@ -61,9 +60,7 @@ async def list_memories(
 
 
 @router.post("", response_model=MemoryResponse, status_code=status.HTTP_201_CREATED)
-@limiter.limit("60/minute")
 async def create_memory(
-    request: Request,
     body: MemoryCreateRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
